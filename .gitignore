@@ -1,0 +1,10 @@
+# Python
+*.pyc
+
+# Output
+output/
+
+# OS Files
+.DS_Store
+.Trashes
+Thumbs.db

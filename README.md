@@ -1,0 +1,1 @@
+Data: [Comparative Indo-European Database Collected by Isidore Dyen](http://www.wordgumbo.com/ie/cmp/).
