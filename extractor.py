@@ -65,9 +65,26 @@ class Extractor:
 		self.addLanguageSimilarity(allExamples)
 	
 	
-	# For each unique wordform, creates a new cluster, groups wordforms into
-	# clusters of identical words.
+	# Arranges wordforms into groups of identical items.
 	def identicalWordsGroupBaseline(self, wordforms):
+		return self.groupBaseline(self.getWordform, wordforms)
+	
+	
+	# Arranges wordforms into groups of items sharing the same first letter.
+	def identicalFirstLettersGroupBaseline(self, wordforms):
+		return self.groupBaseline(self.getFirstLetter, wordforms)
+	
+	
+	# Arranges wordforms into groups of items sharing the first 4 letters (note
+	# that if a word is shorter than 4 letters, it is automatically placed in
+	# a separate cluster).
+	def identicalPrefixesGroupBaseline(self, wordforms):
+		return self.groupBaseline(self.getPrefix, wordforms)
+	
+	
+	# Arrange wordforms for each meaning in groups of cognates, where a
+	# cognateness decision is made based on the test method provided.
+	def groupBaseline(self, test, wordforms):
 		clusters = {}
 		
 		clusterIndices = {}
@@ -77,16 +94,28 @@ class Extractor:
 			clusters[meaningIndex] = {}
 			
 			for languageIndex, wordform in wordforms[meaningIndex].iteritems():
-				if wordform not in clusterIndices:
+				key = test(wordform)
+				
+				# If the provided test returns None, the wordform is placed in
+				# its own separate group. The group must contain a single item
+				# at any point in time.
+				if key is None:
 					lastClusterIndex += 1
-					clusterIndices[wordform] = lastClusterIndex
+					clusters[meaningIndex][lastClusterIndex] = [(wordform, languageIndex)]
+				else:
+					# Cluster indices stores key provided by the test method and
+					# their corresponding group numbers. This allows numbering
+					# groups using consecutive numbers starting with zero.
+					if key not in clusterIndices:
+						lastClusterIndex += 1
+						clusterIndices[key] = lastClusterIndex
 				
-				clusterIndex = clusterIndices[wordform]
+					clusterIndex = clusterIndices[key]
 				
-				if clusterIndex not in clusters[meaningIndex]:
-					clusters[meaningIndex][clusterIndex] = []
-	
-				clusters[meaningIndex][clusterIndex].append((wordform, languageIndex))
+					if clusterIndex not in clusters[meaningIndex]:
+						clusters[meaningIndex][clusterIndex] = []
+				
+					clusters[meaningIndex][clusterIndex].append((wordform, languageIndex))
 		
 		return clusters
 	
@@ -259,6 +288,26 @@ class Extractor:
 		return ngrams
 	
 	
+	### Baseline Tests ###
+	# Returns the wordform itself.
+	def getWordform(self, wordform):
+		return wordform
+	
+	
+	# Returns the first letter of the wordform.
+	def getFirstLetter(self, wordform):
+		return wordform[0]
+	
+	
+	# Returns None for wordforms shorter than four characters, and the first
+	# four characters of the wordform otherwise.
+	def getPrefix(self, wordform):
+		if len(wordform) < 4:
+			return None
+		else:
+			return wordform[ : 4]
+
+
 	### Formatting ###
 	# Formats the output to adhere to scikit-learn requirements.
 	def formatExamples(self):

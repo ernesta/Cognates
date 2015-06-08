@@ -31,6 +31,7 @@ def pairwiseDeduction():
 def groupDeduction():
 	# Feature extraction
 	ext = extractor.Extractor()
+	ext.identicalPrefixesGroupBaseline(rdr.wordforms)
 
 
 def firstPassLearning():
