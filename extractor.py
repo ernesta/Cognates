@@ -9,10 +9,15 @@ import constants
 
 
 class Extractor:
+	### Initialization ###
 	# Initializes training and test set data structures.
 	def __init__(self):
-		# Metrics
-		self.HK2011Metrics = [self.MED, self.LCPLength, self.commonBigramNumber, self.longerWordLen, self.shorterWordLen, self.wordLenDifference]
+		# Measures
+		self.identicalWordsMeasure = [self.identicalWords]
+		self.identicalFirstLettersMeasure = [self.identicalFirstLetters]
+		self.identicalPrefixesMeasure = [self.identicalPrefixes]
+		self.MEDMeasure = [self.MED]
+		self.HK2011Measures = [self.MED, self.LCPLength, self.commonBigramNumber, self.longerWordLen, self.shorterWordLen, self.wordLenDifference]
 		
 		self.trainExamples = []
 		self.trainLabels = []
@@ -21,27 +26,29 @@ class Extractor:
 		self.testLabels = []
 	
 	
+	### Pairwise Baselines ###
 	# Identical words baseline (pairwise deduction).
 	def identicalWordsBaseline(self, allExamples, allLabels):
-		self.batchCompute(allExamples, allLabels, [self.identicalWords], True)
+		self.batchCompute(allExamples, allLabels, self.identicalWordsMeasure, True)
 
 	
 	# Identical first letter baseline (pairwise deduction).
 	def identicalFirstLettersBaseline(self, allExamples, allLabels):
-		self.batchCompute(allExamples, allLabels, [self.identicalFirstLetters], True)
+		self.batchCompute(allExamples, allLabels, self.identicalFirstLettersMeasure, True)
 	
 	
 	# Identical prefix baseline (pairwise deduction).
 	def identicalPrefixesBaseline(self, allExamples, allLabels):
-		self.batchCompute(allExamples, allLabels, [self.identicalPrefixes], True)
+		self.batchCompute(allExamples, allLabels, self.identicalPrefixesMeasure, True)
 	
 	
 	# Minimum edit distance baseline (assumes costs of insertion, deletion and
 	# substitution are all 1).
 	def MEDBaseline(self, allExamples, allLabels):
-		self.batchCompute(allExamples, allLabels, [self.MED])
+		self.batchCompute(allExamples, allLabels, self.MEDMeasure)
 	
 	
+	### Group-based Baselines ###
 	# A reproduction of Hauer & Kondrak (2011). Since data has been preprocessed
 	# slightly differently in this project, and in some cases Hauer & Kondrak
 	# only provide minimal implementation information, a *true* comparison among
@@ -54,16 +61,44 @@ class Extractor:
 		# Length of the first word (here length of the shorter word)
 		# Length of the second word (here length of the longer word)
 		# Absolute length difference between the two words
-		self.batchCompute(allExamples, allLabels, self.HK2011Metrics)
+		self.batchCompute(allExamples, allLabels, self.HK2011Measures)
 		self.addLanguageSimilarity(allExamples)
 	
 	
+	# For each unique wordform, creates a new cluster, groups wordforms into
+	# clusters of identical words.
+	def identicalWordsGroupBaseline(self, wordforms):
+		clusters = {}
+		
+		clusterIndices = {}
+		lastClusterIndex = -1
+		
+		for meaningIndex in range(1, constants.MEANING_COUNT + 1):
+			clusters[meaningIndex] = {}
+			
+			for languageIndex, wordform in wordforms[meaningIndex].iteritems():
+				if wordform not in clusterIndices:
+					lastClusterIndex += 1
+					clusterIndices[wordform] = lastClusterIndex
+				
+				clusterIndex = clusterIndices[wordform]
+				
+				if clusterIndex not in clusters[meaningIndex]:
+					clusters[meaningIndex][clusterIndex] = []
+	
+				clusters[meaningIndex][clusterIndex].append((wordform, languageIndex))
+		
+		return clusters
+	
+	
+	### Extractors ###
 	# Extracts a set of features (all used in Hauer & Kondrak) from a pair of
 	# words.
 	def HK2011Extractor(self, form1, form2, langSimilarity = None):
-		return self.compute(form1, form2, self.HK2011Metrics, langSimilarity)
+		return self.compute(form1, form2, self.HK2011Measures, langSimilarity)
 	
 	
+	### Language Similarity ###
 	# Extracts the necessary language similarity values from the language
 	# similarity matrix, appends the new feature to the existing test set.
 	def appendTestSimilarities(self, predictedSimilarities, allExamples):
@@ -73,8 +108,48 @@ class Extractor:
 			similarityFeature.append(predictedSimilarities[language1][language2])
 		
 		self.testExamples = numpy.hstack((self.testExamples, numpy.array(similarityFeature)))
-
 	
+	
+	# Measures language similarity as a fraction of positive examples to all
+	# examples for each language pair in the training set.
+	def addLanguageSimilarity(self, allExamples):
+		decisionCounts = self.countTrainDecisions(allExamples)
+		decisionSimilarities = self.computeTrainSimilarity(allExamples, decisionCounts)
+		
+		self.trainExamples = numpy.column_stack((self.trainExamples, numpy.array(decisionSimilarities)))
+	
+	
+	# Uses the training dataset to count positive and all cognateness decisions
+	# for language pairs present in the data.
+	def countTrainDecisions(self, allExamples):
+		decisionCounts = {}
+		
+		for i, (form1, form2, language1, language2) in enumerate(allExamples[constants.TRAIN]):
+			if language1 not in decisionCounts:
+				decisionCounts[language1] = {}
+			if language2 not in decisionCounts[language1]:
+				decisionCounts[language1][language2] = [0, 0]
+			
+			decisionCounts[language1][language2][0] += 1
+			
+			if self.trainLabels[i] == 1:
+				decisionCounts[language1][language2][1] += 1
+	
+		return decisionCounts
+
+
+	# Once all decisions are counted, computes decision-based language pair
+	# similarity using counts of positive and all decisions.
+	def computeTrainSimilarity(self, allExamples, decisionCounts):
+		decisionSimilarities = []
+		
+		for i, (form1, form2, language1, language2) in enumerate(allExamples[constants.TRAIN]):
+			decisionSimilarities.append(decisionCounts[language1][language2][1] / decisionCounts[language1][language2][0])
+
+		return decisionSimilarities
+
+
+	### Feature Extraction ###
 	# Uses the provided test function to compare wordforms in each word pair and
 	# assign a value based on the comparison. The computation is performed
 	# separately for training and test sets unless deduction is set to True.
@@ -104,7 +179,7 @@ class Extractor:
 		self.formatExamples()
 
 
-	# Uses the list of word similarity metrics to generate a single example from
+	# Uses the list of word similarity measures to generate a single example from
 	# two wordforms.
 	def compute(self, form1, form2, tests, langSimilarity):
 		example = [test(form1, form2) for test in tests]
@@ -115,45 +190,7 @@ class Extractor:
 		return numpy.array(example)
 
 
-	# Measures language similarity as a fraction of positive examples to all
-	# examples for each language pair in the training set.
-	def addLanguageSimilarity(self, allExamples):
-		decisionCounts = self.countTrainDecisions(allExamples)
-		decisionSimilarities = self.computeTrainSimilarity(allExamples, decisionCounts)
-		
-		self.trainExamples = numpy.column_stack((self.trainExamples, numpy.array(decisionSimilarities)))
-
-
-	# Uses the training dataset to count positive and all cognateness decisions
-	# for language pairs present in the data.
-	def countTrainDecisions(self, allExamples):
-		decisionCounts = {}
-		
-		for i, (form1, form2, language1, language2) in enumerate(allExamples[constants.TRAIN]):
-			if language1 not in decisionCounts:
-				decisionCounts[language1] = {}
-			if language2 not in decisionCounts[language1]:
-				decisionCounts[language1][language2] = [0, 0]
-			
-			decisionCounts[language1][language2][0] += 1
-			
-			if self.trainLabels[i] == 1:
-				decisionCounts[language1][language2][1] += 1
-
-		return decisionCounts
-	
-	
-	# Once all decisions are counted, computes decision-based language pair
-	# similarity using counts of positive and all decisions.
-	def computeTrainSimilarity(self, allExamples, decisionCounts):
-		decisionSimilarities = []
-		
-		for i, (form1, form2, language1, language2) in enumerate(allExamples[constants.TRAIN]):
-			decisionSimilarities.append(decisionCounts[language1][language2][1] / decisionCounts[language1][language2][0])
-	
-		return decisionSimilarities
-
-
+	### Word Similarity Measures ###
 	# Checks if the two wordforms are identical.
 	def identicalWords(self, form1, form2):
 		return float(form1 == form2)
@@ -222,6 +259,7 @@ class Extractor:
 		return ngrams
 	
 	
+	### Formatting ###
 	# Formats the output to adhere to scikit-learn requirements.
 	def formatExamples(self):
 		self.trainExamples = numpy.array(self.trainExamples)

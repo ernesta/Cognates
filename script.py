@@ -28,6 +28,11 @@ def pairwiseDeduction():
 	output.savePredictions(filename, prr.examples[constants.TRAIN] + prr.examples[constants.TEST], ext.testExamples, numpy.array(ext.testExamples), ext.testLabels)
 
 
+def groupDeduction():
+	# Feature extraction
+	ext = extractor.Extractor()
+
+
 def firstPassLearning():
 	# Feature extraction
 	ext = extractor.Extractor()
@@ -58,8 +63,6 @@ def secondPassLearning(ext, lrn):
 
 def clustering(ext, lrn):
 	predictedSets = lrn.cluster(rdr.wordforms, prr.testMeanings, prr.testLanguages, ext.HK2011Extractor)
-	
-	print predictedSets[1]
 
 
 def learningPipeline(ext, lrn, filename):
@@ -90,6 +93,7 @@ prr.pairByLanguageRatio(rdr.cognateCCNs, rdr.dCognateCCNs, len(rdr.languages), 0
 
 # Deduction
 pairwiseDeduction()
+groupDeduction()
 
 # Learning
 ext, lrn = firstPassLearning()
