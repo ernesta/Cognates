@@ -4,6 +4,7 @@ import constants
 
 
 
+### Printing to Terminal ###
 # Prints to terminal key deduction results.
 def reportDeduction(prr, accuracy, report):
 	print "\n", "### Pairwise Deduction ###"
@@ -23,6 +24,7 @@ def reportLearning(prr, accuracy, report):
 
 
 
+### Saving to File ###
 # Saves each example (a pair of wordforms with their languages) to a file
 # together with their respective features and labels (both true and predicted).
 def savePredictions(filename, examples, features, predictions, truth):
@@ -32,5 +34,3 @@ def savePredictions(filename, examples, features, predictions, truth):
 			sFeatures = "[" + "  ".join(["{0:4.1f}".format(feature) for feature in features[i]]) + " ]"
 			
 			output.write("{0:40} {1:20} {2:2} {3:2}\n".format(sExample, sFeatures, truth[i], int(predictions[i])))
-
-

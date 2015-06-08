@@ -42,6 +42,7 @@ import constants
 		# CCN5: with all forms from any other CCN5 group (s.t. relationships).
 
 class Pairer:
+	### Initialization ###
 	# Initializes the pairer, sets the example and label dictionaries.
 	def __init__(self):
 		# Used internally.
@@ -66,7 +67,8 @@ class Pairer:
 			constants.TEST: {key: 0 for key in range(constants.MEANING_COUNT + 1)}
 		}
 	
-	
+
+	### Pairing ###
 	# The data is divided into training and test sets by meaning. A fraction
 	# (tRatio) of the meanings is used as training data, the rest of the data is
 	# used for testing.

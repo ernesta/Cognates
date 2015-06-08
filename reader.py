@@ -6,6 +6,7 @@ import constants
 
 
 class Reader:
+	### Initialization ###
 	# Initializes the reader by setting the target filename and various data
 	# structures that will be used for reading the file.
 	def __init__(self, filename):
@@ -50,6 +51,7 @@ class Reader:
 		self.lastCognateGroup = -1
 
 
+	### Reading ###
 	# Reads the input file line by line, parses each line and populates the
 	# associated data structures accordingly.
 	def read(self):
@@ -85,6 +87,7 @@ class Reader:
 		self.languages = OrderedDict(sorted(self.languages.items(), key = lambda x: x[0]))
 
 
+	### Processing Lines ###
 	# Processes the header line.
 	def processHeader(self, line):
 		splitLine = line.split()
@@ -143,18 +146,6 @@ class Reader:
 			self.languages[languageIndex] = language
 
 		self.currentLanguageIndex = languageIndex
-
-
-	# Adds a pair of CCNs to the doubtful CCN dictionary.
-	def addDoubtfulCCNs(self, firstCCN, secondCCN):
-		if self.currentMeaningIndex not in self.dCognateCCNs:
-			self.dCognateCCNs[self.currentMeaningIndex] = {}
-		
-		if firstCCN not in self.dCognateCCNs[self.currentMeaningIndex]:
-			self.dCognateCCNs[self.currentMeaningIndex][firstCCN] = []
-	
-		if secondCCN not in self.dCognateCCNs[self.currentMeaningIndex][firstCCN]:
-			self.dCognateCCNs[self.currentMeaningIndex][firstCCN].append(secondCCN)
 	
 	
 	# Parses a given form line to extract all wordforms.
@@ -182,8 +173,22 @@ class Reader:
 		# meaning. Thus, all entries with multiple forms are ignored (out of
 		# 19,000 entries, 16,217 only contain one form).
 		return forms[0] if len(forms) == 1 else None
+	
+	
+	### Parsing CCNs ###
+	# Adds a pair of CCNs to the doubtful CCN dictionary.
+	def addDoubtfulCCNs(self, firstCCN, secondCCN):
+		if self.currentMeaningIndex not in self.dCognateCCNs:
+			self.dCognateCCNs[self.currentMeaningIndex] = {}
+		
+		if firstCCN not in self.dCognateCCNs[self.currentMeaningIndex]:
+			self.dCognateCCNs[self.currentMeaningIndex][firstCCN] = []
+		
+		if secondCCN not in self.dCognateCCNs[self.currentMeaningIndex][firstCCN]:
+			self.dCognateCCNs[self.currentMeaningIndex][firstCCN].append(secondCCN)
 
 
+	### Grouping ###
 	# Selects the approapriate cognate group to add the current wordform to.
 	def addToCognateGroup(self, form):
 		if self.currentMeaningIndex not in self.cognateSets:
