@@ -29,17 +29,17 @@ class Extractor:
 	### Pairwise Baselines ###
 	# Identical words baseline (pairwise deduction).
 	def identicalWordsBaseline(self, allExamples, allLabels):
-		self.batchCompute(allExamples, allLabels, self.identicalWordsMeasure, True)
+		self.batchCompute(allExamples, allLabels, self.identicalWordsMeasure)
 
 	
 	# Identical first letter baseline (pairwise deduction).
 	def identicalFirstLettersBaseline(self, allExamples, allLabels):
-		self.batchCompute(allExamples, allLabels, self.identicalFirstLettersMeasure, True)
+		self.batchCompute(allExamples, allLabels, self.identicalFirstLettersMeasure)
 	
 	
 	# Identical prefix baseline (pairwise deduction).
 	def identicalPrefixesBaseline(self, allExamples, allLabels):
-		self.batchCompute(allExamples, allLabels, self.identicalPrefixesMeasure, True)
+		self.batchCompute(allExamples, allLabels, self.identicalPrefixesMeasure)
 	
 	
 	# Minimum edit distance baseline (assumes costs of insertion, deletion and
@@ -66,44 +66,44 @@ class Extractor:
 	
 	
 	# Arranges wordforms into groups of identical items.
-	def identicalWordsGroupBaseline(self, wordforms):
-		return self.groupBaseline(self.getWordform, wordforms)
+	def identicalWordsGroupBaseline(self, testMeanings, testLanguages, wordforms):
+		return self.groupBaseline(self.getWordform, testMeanings, testLanguages, wordforms)
 	
 	
 	# Arranges wordforms into groups of items sharing the same first letter.
-	def identicalFirstLettersGroupBaseline(self, wordforms):
-		return self.groupBaseline(self.getFirstLetter, wordforms)
+	def identicalFirstLettersGroupBaseline(self, testMeanings, testLanguages, wordforms):
+		return self.groupBaseline(self.getFirstLetter, testMeanings, testLanguages, wordforms)
 	
 	
 	# Arranges wordforms into groups of items sharing the first 4 letters (note
 	# that if a word is shorter than 4 letters, it is automatically placed in
 	# a separate cluster).
-	def identicalPrefixesGroupBaseline(self, wordforms):
-		return self.groupBaseline(self.getPrefix, wordforms)
+	def identicalPrefixesGroupBaseline(self, testMeanings, testLanguages, wordforms):
+		return self.groupBaseline(self.getPrefix, testMeanings, testLanguages, wordforms)
 	
 	
-	# Arrange wordforms for each meaning in groups of cognates, where a
-	# cognateness decision is made based on the test method provided.
-	def groupBaseline(self, test, wordforms):
+	# Arranges wordforms for each meaning in groups of cognates, where a
+	# cognateness decision is made based on the test method provided. The test
+	# dataset is used.
+	def groupBaseline(self, test, testMeanings, testLanguages, wordforms):
 		clusters = {}
 		
 		clusterIndices = {}
 		lastClusterIndex = -1
 		
-		for meaningIndex in range(1, constants.MEANING_COUNT + 1):
+		for meaningIndex in testMeanings:
 			clusters[meaningIndex] = {}
 			
 			for languageIndex, wordform in wordforms[meaningIndex].iteritems():
 				key = test(wordform)
 				
 				# If the provided test returns None, the wordform is placed in
-				# its own separate group. The group must contain a single item
-				# at any point in time.
+				# its own separate group.
 				if key is None:
 					lastClusterIndex += 1
 					clusters[meaningIndex][lastClusterIndex] = [(wordform, languageIndex)]
 				else:
-					# Cluster indices stores key provided by the test method and
+					# clusterIndices stores keys provided by the test method and
 					# their corresponding group numbers. This allows numbering
 					# groups using consecutive numbers starting with zero.
 					if key not in clusterIndices:
@@ -111,13 +111,14 @@ class Extractor:
 						clusterIndices[key] = lastClusterIndex
 				
 					clusterIndex = clusterIndices[key]
-				
 					if clusterIndex not in clusters[meaningIndex]:
 						clusters[meaningIndex][clusterIndex] = []
 				
 					clusters[meaningIndex][clusterIndex].append((wordform, languageIndex))
+	
+		labels = self.extractGroupLabels(clusters, wordforms, testMeanings, testLanguages)
 		
-		return clusters
+		return labels, clusters
 	
 	
 	### Extractors ###
@@ -179,12 +180,23 @@ class Extractor:
 
 
 	### Feature Extraction ###
+	# Uses the list of word similarity measures to generate a single example from
+	# two wordforms.
+	def compute(self, form1, form2, tests, langSimilarity):
+		example = [test(form1, form2) for test in tests]
+		
+		if langSimilarity is not None:
+			example.append(langSimilarity)
+		
+		return numpy.array(example)
+
+
 	# Uses the provided test function to compare wordforms in each word pair and
 	# assign a value based on the comparison. The computation is performed
 	# separately for training and test sets unless deduction is set to True.
 	# Since deduction involves no machine learning, the entire dataset is then
 	# used as a test set.
-	def batchCompute(self, allExamples, allLabels, tests, deduction = False):
+	def batchCompute(self, allExamples, allLabels, tests):
 		for purpose, examples in allExamples.iteritems():
 			outLabels = allLabels[purpose]
 			
@@ -195,8 +207,6 @@ class Extractor:
 				for test in tests:
 					testValues.append(test(form1, form2))
 				outExamples.append(testValues)
-
-			purpose = constants.TEST if deduction else purpose
 			
 			if purpose == constants.TRAIN:
 				self.trainExamples.extend(outExamples)
@@ -208,15 +218,29 @@ class Extractor:
 		self.formatExamples()
 
 
-	# Uses the list of word similarity measures to generate a single example from
-	# two wordforms.
-	def compute(self, form1, form2, tests, langSimilarity):
-		example = [test(form1, form2) for test in tests]
+	# Returns, for each meaning, a list of language-sorted cognate group label
+	# indices for the test dataset.
+	def extractGroupLabels(self, cognateSets, wordforms, testMeanings, testLanguages):
+		groupLabels = {}
 		
-		if langSimilarity is not None:
-			example.append(langSimilarity)
-		
-		return numpy.array(example)
+		for meaningIndex in testMeanings:
+			labels = [-1] * len(wordforms[meaningIndex])
+			keys = wordforms[meaningIndex].keys()
+			
+			for clusterIndex, entries in cognateSets[meaningIndex].iteritems():
+				for (wordform, languageIndex) in entries:
+					index = keys.index(languageIndex)
+					labels[index] = clusterIndex
+	
+			groupLabels[meaningIndex] = []
+
+			for index, label in enumerate(labels):
+				languageIndex = keys[index]
+
+				if (languageIndex in testLanguages):
+					groupLabels[meaningIndex].append(label)
+
+		return groupLabels
 
 
 	### Word Similarity Measures ###

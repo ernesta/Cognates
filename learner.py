@@ -36,8 +36,9 @@ class Learner:
 	
 	
 	### Clustering ###
-	# For each meaning, clusters all wordforms.
+	# For each meaning, clusters all wordforms in the test dataset.
 	def cluster(self, wordforms, testMeanings, testLanguages, extractor):
+		predictedLabels  = {}
 		predictedClusters = {}
 		
 		# For each meaning in test data, clustering is performed separately.
@@ -46,12 +47,12 @@ class Learner:
 			# wordform.
 			meaningLanguages = self.collectMeaningLanguages(testLanguages, wordforms[meaningIndex])
 			distances = self.computeDistances(meaningLanguages, wordforms[meaningIndex], extractor)
-			predictedAssignments = self.clustering.fit_predict(numpy.array(distances))
+			predictedLabels[meaningIndex] = self.clustering.fit_predict(numpy.array(distances))
 			
-			# Formats the data so that it can be easier read and compared.
-			predictedClusters[meaningIndex] = self.extractClusters(predictedAssignments, meaningLanguages, wordforms[meaningIndex])
+			# Formats the data so that it can be easier read.
+			predictedClusters[meaningIndex] = self.extractClusters(predictedLabels[meaningIndex], meaningLanguages, wordforms[meaningIndex])
 		
-		return predictedClusters
+		return predictedLabels, predictedClusters
 	
 	
 	# Depending on how the training and test sets were made, not all languages
@@ -68,7 +69,6 @@ class Learner:
 		languageCount = len(meaningLanguages)
 		
 		distances = [[0] * languageCount for i in range(languageCount)]
-		
 		for i in range(languageCount):
 			language1 = meaningLanguages[i]
 			form1 = meaningWordforms.get(language1, None)
@@ -106,7 +106,7 @@ class Learner:
 
 
 	### Evaluation ###
-	# Computes accuracy of predictions by comaring them to the truth.
+	# Computes accuracy of predictions by comparing them to the truth.
 	def computeAccuracy(self, truth, predictions):
 		return metrics.accuracy_score(truth, predictions)
 	
@@ -115,6 +115,12 @@ class Learner:
 	# reported for each class separately, and for the entire dataset.
 	def evaluatePairwise(self, truth, predictions):
 		return metrics.classification_report(truth, predictions, target_names = constants.TARGETS)
+	
+	
+	# Computes the V1 score of the predicted grouping of wordforms for a meaning
+	# compared to the actual cognate grouping.
+	def computeV1(self, truth, predictions):
+		return metrics.v_measure_score(truth, predictions)
 
 	
 	### Predicted Language Similarity ###

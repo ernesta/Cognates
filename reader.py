@@ -77,12 +77,16 @@ class Reader:
 	
 				# Form line.
 				else:
-					# CCN0 forms are removed.
+					# CCN0, CCN3 and CCN5 forms are removed.
 					if self.currentCCN == constants.CCN0:
+						continue
+					elif (self.currentCCN >= constants.CCN3_START) and (self.currentCCN <= constants.CCN3_END):
+						continue
+					elif (self.currentCCN >= constants.CCN5_START) and (self.currentCCN <= constants.CCN5_END):
 						continue
 					else:
 						self.processForm(line)
-	
+
 		# Orders languages by their indices for better readability.
 		self.languages = OrderedDict(sorted(self.languages.items(), key = lambda x: x[0]))
 
@@ -121,8 +125,7 @@ class Reader:
 
 	# Processes the form line.
 	def processForm(self, line):
-		meaningIndex = int(line[2 : 5])
-		languageIndex = int(line[6 : 8])
+		self.currentLanguageIndex = int(line[6 : 8])
 		language = line[9 : 24].strip().lower().title()
 
 		form = self.parseForms(line)
@@ -130,22 +133,20 @@ class Reader:
 		# Adds the form to the cognateCCNs dictionary. Also adds the form to its
 		# appropriate cognate group based on its CCN.
 		if form:
-			if self.currentCCN not in self.cognateCCNs[meaningIndex]:
-				self.cognateCCNs[meaningIndex][self.currentCCN] = {}
-			self.cognateCCNs[meaningIndex][self.currentCCN][languageIndex] = form
+			if self.currentCCN not in self.cognateCCNs[self.currentMeaningIndex]:
+				self.cognateCCNs[self.currentMeaningIndex][self.currentCCN] = {}
+			self.cognateCCNs[self.currentMeaningIndex][self.currentCCN][self.currentLanguageIndex] = form
 
-			if meaningIndex not in self.wordforms:
-				self.wordforms[meaningIndex] = {}
-			self.wordforms[meaningIndex][languageIndex] = form
-	
+			if self.currentMeaningIndex not in self.wordforms:
+				self.wordforms[self.currentMeaningIndex] = {}
+			self.wordforms[self.currentMeaningIndex][self.currentLanguageIndex] = form
+
 			self.addToCognateGroup(form)
 	
 		# If an unseen language is encountered, it is added to the language
 		# dictionary.
-		if languageIndex not in self.languages:
-			self.languages[languageIndex] = language
-
-		self.currentLanguageIndex = languageIndex
+		if self.currentLanguageIndex not in self.languages:
+			self.languages[self.currentLanguageIndex] = language
 	
 	
 	# Parses a given form line to extract all wordforms.
@@ -192,6 +193,9 @@ class Reader:
 	# Selects the approapriate cognate group to add the current wordform to.
 	def addToCognateGroup(self, form):
 		if self.currentMeaningIndex not in self.cognateSets:
+			self.lastCCN = 0
+			self.lastCognateGroup = -1
+			
 			self.cognateSets[self.currentMeaningIndex] = {}
 		
 		# Each word in CCN1 gets its own cognate group.
@@ -201,7 +205,7 @@ class Reader:
 
 		# Each word in the same CCN2 goes to the same cognate group.
 		# Each word in the same CCN4 goes to the same cognate group.
-		elif ((self.currentCCN >= constants.CCN2_START) and (self.currentCCN <= constants.CCN2_END)) or ((self.currentCCN >= constants.CCN4_START) and (self.currentCCN <= constants.CCN4_END)):
+		else:
 			if self.currentCCN == self.lastCCN:
 				self.cognateSets[self.currentMeaningIndex][self.lastCognateGroup].append((form, self.currentLanguageIndex))
 			else:

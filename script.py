@@ -21,17 +21,25 @@ def pairwiseDeduction():
 	report = lrn.evaluatePairwise(ext.testLabels, ext.testExamples)
 
 	# Reporting
-	output.reportDeduction(prr, accuracy, report)
+	output.reportPairwiseDeduction(prr, accuracy, report)
 	
 	# Output
 	filename = "output/identical_word.txt"
-	output.savePredictions(filename, prr.examples[constants.TRAIN] + prr.examples[constants.TEST], ext.testExamples, numpy.array(ext.testExamples), ext.testLabels)
+	output.savePredictions(filename, prr.examples[constants.TEST], ext.testExamples, numpy.array(ext.testExamples), ext.testLabels)
 
 
 def groupDeduction():
 	# Feature extraction
 	ext = extractor.Extractor()
-	predictedSets = ext.identicalPrefixesGroupBaseline(rdr.wordforms)
+	predictedLabels, predictedSets = ext.identicalFirstLettersGroupBaseline(prr.testMeanings, prr.testLanguages, rdr.wordforms)
+	trueLabels = ext.extractGroupLabels(rdr.cognateSets, rdr.wordforms, prr.testMeanings, prr.testLanguages)
+	
+	# Evaluation
+	lrn = learner.Learner()
+	V1scores = [lrn.computeV1(trueLabels[meaningIndex], predictedLabels[meaningIndex]) for meaningIndex in prr.testMeanings]
+	
+	# Reporting
+	output.reportGroup("Group-based Deduction", V1scores, prr.testMeanings, rdr.meanings)
 
 
 def firstPassLearning():
@@ -50,6 +58,7 @@ def firstPassLearning():
 
 
 def secondPassLearning(ext, lrn):
+	# Feature extraction
 	lrn.predictLanguageSimilarity(rdr.wordforms, ext.HK2011Extractor)
 	ext.appendTestSimilarities(lrn.predictedSimilarities, prr.examples)
 	
@@ -63,7 +72,17 @@ def secondPassLearning(ext, lrn):
 
 
 def clustering(ext, lrn):
-	predictedSets = lrn.cluster(rdr.wordforms, prr.testMeanings, prr.testLanguages, ext.HK2011Extractor)
+	# Feature Extraction
+	trueLabels = ext.extractGroupLabels(rdr.cognateSets, rdr.wordforms, prr.testMeanings, prr.testLanguages)
+	
+	# Learning
+	predictedLabels, predictedSets = lrn.cluster(rdr.wordforms, prr.testMeanings, prr.testLanguages, ext.HK2011Extractor)
+	
+	# Evaluation
+	V1scores = [lrn.computeV1(trueLabels[meaningIndex], predictedLabels[meaningIndex]) for meaningIndex in prr.testMeanings]
+	
+	# Reporting
+	output.reportGroup("Clustering", V1scores, prr.testMeanings, rdr.meanings)
 
 
 def learningPipeline(ext, lrn, filename):
@@ -75,7 +94,7 @@ def learningPipeline(ext, lrn, filename):
 	report = lrn.evaluatePairwise(ext.testLabels, predictions)
 	
 	# Reporting
-	output.reportLearning(prr, accuracy, report)
+	output.reportPairwiseLearning(prr, accuracy, report)
 
 	# Output
 	output.savePredictions(filename, prr.examples[constants.TEST], ext.testExamples, predictions, ext.testLabels)
@@ -93,12 +112,12 @@ prr.pairByLanguageRatio(rdr.cognateCCNs, rdr.dCognateCCNs, len(rdr.languages), 0
 #prr.pairByMeaningRatio(rdr.cognateCCNs, rdr.dCognateCCNs, 0.5)
 
 # Deduction
-#pairwiseDeduction()
-#groupDeduction()
+pairwiseDeduction()
+groupDeduction()
 
 # Learning
 ext, lrn = firstPassLearning()
-#ext, lrn = secondPassLearning(ext, lrn)
+ext, lrn = secondPassLearning(ext, lrn)
 
 # Clustering
 clustering(ext, lrn)

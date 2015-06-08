@@ -59,8 +59,8 @@ class Pairer:
 		self.allCounts = {x: 0 for x in range(4)}
 		self.positiveCounts = {x: 0 for x in range(4)}
 		
-		self.testLanguages = []
 		self.testMeanings = []
+		self.testLanguages = []
 		
 		self.meaningRange = {
 			constants.TRAIN: {key: 0 for key in range(constants.MEANING_COUNT + 1)},

@@ -5,22 +5,31 @@ import constants
 
 
 ### Printing to Terminal ###
-# Prints to terminal key deduction results.
-def reportDeduction(prr, accuracy, report):
+# Prints to terminal key pairwise deduction results.
+def reportPairwiseDeduction(prr, accuracy, report):
 	print "\n", "### Pairwise Deduction ###"
-	print constants.REPORTING.format("Negative examples:", (1 - prr.positiveCounts[constants.ALL] / prr.allCounts[constants.ALL]))
+	print constants.REPORTING.format("Negative test examples:", (1 - prr.positiveCounts[constants.TEST] / prr.allCounts[constants.TEST]))
 	print "\n", constants.REPORTING.format("Accuracy:", accuracy)
 	print "\n", report
 
 
-# Prints to terminal key learning results.
-def reportLearning(prr, accuracy, report):
+# Prints to terminal key pairwise learning results.
+def reportPairwiseLearning(prr, accuracy, report):
 	print "\n", "### Pairwise Learning (1st Pass) ###"
 	print constants.REPORTING.format("Negative examples:", (1 - prr.positiveCounts[constants.ALL] / prr.allCounts[constants.ALL]))
 	print constants.REPORTING.format("Negative training examples:", (1 - prr.positiveCounts[constants.TRAIN] / prr.allCounts[constants.TRAIN]))
 	print constants.REPORTING.format("Negative test examples:", (1 - prr.positiveCounts[constants.TEST] / prr.allCounts[constants.TEST]))
 	print "\n", constants.REPORTING.format("Accuracy:", accuracy)
 	print "\n", report
+
+
+def reportGroup(title, scores, testMeanings, allMeanings):
+	print "\n", "### " + title + " ###"
+	for i, meaningIndex in enumerate(testMeanings):
+		score = scores[i]
+		meaning = allMeanings[meaningIndex]
+		print "{0:3d} {1:15} {2:.4f}".format(meaningIndex, allMeanings[meaningIndex], scores[i])
+	print "\n", "{0:19} {1:.4f}".format("Average:", sum(scores) / len(scores))
 
 
 
