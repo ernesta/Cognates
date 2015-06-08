@@ -17,8 +17,8 @@ def pairwiseDeduction():
 
 	# Evaluation
 	lrn = learner.Learner()
-	accuracy = lrn.computeSVMAccuracy(ext.testLabels, ext.testExamples)
-	report = lrn.evaluateSVM(ext.testLabels, ext.testExamples)
+	accuracy = lrn.computeAccuracy(ext.testLabels, ext.testExamples)
+	report = lrn.evaluatePairwise(ext.testLabels, ext.testExamples)
 
 	# Reporting
 	output.reportDeduction(prr, accuracy, report)
@@ -31,7 +31,7 @@ def pairwiseDeduction():
 def groupDeduction():
 	# Feature extraction
 	ext = extractor.Extractor()
-	ext.identicalPrefixesGroupBaseline(rdr.wordforms)
+	predictedSets = ext.identicalPrefixesGroupBaseline(rdr.wordforms)
 
 
 def firstPassLearning():
@@ -71,8 +71,8 @@ def learningPipeline(ext, lrn, filename):
 	predictions = lrn.predictSVM(ext.testExamples)
 	
 	# Evaluation
-	accuracy = lrn.computeSVMAccuracy(ext.testLabels, predictions)
-	report = lrn.evaluateSVM(ext.testLabels, predictions)
+	accuracy = lrn.computeAccuracy(ext.testLabels, predictions)
+	report = lrn.evaluatePairwise(ext.testLabels, predictions)
 	
 	# Reporting
 	output.reportLearning(prr, accuracy, report)
@@ -93,12 +93,12 @@ prr.pairByLanguageRatio(rdr.cognateCCNs, rdr.dCognateCCNs, len(rdr.languages), 0
 #prr.pairByMeaningRatio(rdr.cognateCCNs, rdr.dCognateCCNs, 0.5)
 
 # Deduction
-pairwiseDeduction()
-groupDeduction()
+#pairwiseDeduction()
+#groupDeduction()
 
 # Learning
 ext, lrn = firstPassLearning()
-ext, lrn = secondPassLearning(ext, lrn)
+#ext, lrn = secondPassLearning(ext, lrn)
 
 # Clustering
 clustering(ext, lrn)

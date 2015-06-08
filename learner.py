@@ -50,7 +50,7 @@ class Learner:
 			
 			# Formats the data so that it can be easier read and compared.
 			predictedClusters[meaningIndex] = self.extractClusters(predictedAssignments, meaningLanguages, wordforms[meaningIndex])
-
+		
 		return predictedClusters
 	
 	
@@ -83,7 +83,7 @@ class Learner:
 				if not form2:
 					continue
 			
-				example = extractor(form1, form2, self.predictedSimilarities[language1][language2])
+				example = extractor(form1, form2, self.predictedSimilarities[language1][language2]) if self.predictedSimilarities else extractor(form1, form2)
 				distances[i][j] = 1 - self.predictSVM(example)[0]
 	
 		return distances
@@ -107,13 +107,13 @@ class Learner:
 
 	### Evaluation ###
 	# Computes accuracy of predictions by comaring them to the truth.
-	def computeSVMAccuracy(self, truth, predictions):
+	def computeAccuracy(self, truth, predictions):
 		return metrics.accuracy_score(truth, predictions)
 	
 	
 	# Generates an evaluation report, where precision, recall and F-1 scores are
 	# reported for each class separately, and for the entire dataset.
-	def evaluateSVM(self, truth, predictions):
+	def evaluatePairwise(self, truth, predictions):
 		return metrics.classification_report(truth, predictions, target_names = constants.TARGETS)
 
 	
