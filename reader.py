@@ -125,26 +125,27 @@ class Reader:
 	def processForm(self, line):
 		self.currentLanguageIndex = int(line[6 : 8])
 		language = line[9 : 24].strip().lower().title()
-
-		form = self.parseForms(line)
 		
-		# Adds the form to the cognateCCNs dictionary. Also adds the form to its
-		# appropriate cognate group based on its CCN.
-		if form:
-			if self.currentCCN not in self.cognateCCNs[self.currentMeaningIndex]:
-				self.cognateCCNs[self.currentMeaningIndex][self.currentCCN] = {}
-			self.cognateCCNs[self.currentMeaningIndex][self.currentCCN][self.currentLanguageIndex] = form
-
-			if self.currentMeaningIndex not in self.wordforms:
-				self.wordforms[self.currentMeaningIndex] = {}
-			self.wordforms[self.currentMeaningIndex][self.currentLanguageIndex] = form
-
-			self.addToCognateGroup(form)
+		if self.currentLanguageIndex <= constants.LANGUAGE_COUNT:
+			form = self.parseForms(line)
+		
+			# Adds the form to the cognateCCNs dictionary. Also adds the form to its
+			# appropriate cognate group based on its CCN.
+			if form:
+				if self.currentCCN not in self.cognateCCNs[self.currentMeaningIndex]:
+					self.cognateCCNs[self.currentMeaningIndex][self.currentCCN] = {}
+				self.cognateCCNs[self.currentMeaningIndex][self.currentCCN][self.currentLanguageIndex] = form
 	
-		# If an unseen language is encountered, it is added to the language
-		# dictionary.
-		if self.currentLanguageIndex not in self.languages:
-			self.languages[self.currentLanguageIndex] = language
+				if self.currentMeaningIndex not in self.wordforms:
+					self.wordforms[self.currentMeaningIndex] = {}
+				self.wordforms[self.currentMeaningIndex][self.currentLanguageIndex] = form
+	
+				self.addToCognateGroup(form)
+	
+			# If an unseen language is encountered, it is added to the language
+			# dictionary.
+			if self.currentLanguageIndex not in self.languages:
+				self.languages[self.currentLanguageIndex] = language
 	
 	
 	# Parses a given form line to extract all wordforms.

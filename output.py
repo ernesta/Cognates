@@ -35,7 +35,7 @@ def reportGroup(scores, testMeanings, allMeanings):
 def reportCluster(scores, distances, testMeanings, allMeanings):
 	print "\n", "### Clustering ###"
 	for i, meaningIndex in enumerate(testMeanings):
-		print "{0:3d} {1:26} {2:.4f} {2:6.2f}".format(meaningIndex, allMeanings[meaningIndex], scores[i], distances[i])
+		print "{0:3d} {1:26} {2:.4f} {3:6.2f}".format(meaningIndex, allMeanings[meaningIndex], scores[i], distances[i])
 	print "\n", "{0:30} {1:.4f} {2:6.2f}".format("Average:", sum(scores) / len(scores), sum(distances) / len(distances)), "\n"
 
 
@@ -51,6 +51,7 @@ def savePredictions(filename, examples, features, predictions, truth):
 			output.write("{0:40} {1:20} {2:2} {3:2}\n".format(sExample, sFeatures, truth[i], int(predictions[i])))
 
 
+# Saves a readable version of clustering of grouping to a file.
 def saveGroup(filename, predictedSets):
 	with open(filename, "wb") as output:
 		for meaningIndex, groups in predictedSets.iteritems():

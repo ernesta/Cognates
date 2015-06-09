@@ -114,10 +114,10 @@ class Learner:
 					
 				clusterSums[jLabel][iLabel] += distance
 				clusterCounts[jLabel][iLabel] += 1
-
+	
 		clusterDistances = numpy.array(clusterSums) / numpy.array(clusterCounts)
 		numpy.fill_diagonal(clusterDistances, 1.0)
-		
+
 		return clusterDistances.min()
 	
 	

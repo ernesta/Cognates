@@ -88,10 +88,10 @@ class Extractor:
 	def groupBaseline(self, test, testMeanings, testLanguages, wordforms):
 		clusters = {}
 		
-		clusterIndices = {}
-		lastClusterIndex = -1
-		
 		for meaningIndex in testMeanings:
+			clusterIndices = {}
+			lastClusterIndex = -1
+
 			clusters[meaningIndex] = {}
 			
 			for languageIndex, wordform in wordforms[meaningIndex].iteritems():
