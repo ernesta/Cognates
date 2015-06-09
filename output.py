@@ -23,14 +23,20 @@ def reportPairwiseLearning(prr, accuracy, report):
 	print "\n", report
 
 
-def reportGroup(title, scores, testMeanings, allMeanings):
-	print "\n", "### " + title + " ###"
+# Prints to terminal key group-based deduction results.
+def reportGroup(scores, testMeanings, allMeanings):
+	print "\n", "### Group-based Deduction ###"
 	for i, meaningIndex in enumerate(testMeanings):
-		score = scores[i]
-		meaning = allMeanings[meaningIndex]
 		print "{0:3d} {1:15} {2:.4f}".format(meaningIndex, allMeanings[meaningIndex], scores[i])
 	print "\n", "{0:19} {1:.4f}".format("Average:", sum(scores) / len(scores))
 
+
+# Prints to terminal key clustering results.
+def reportCluster(scores, distances, testMeanings, allMeanings):
+	print "\n", "### Clustering ###"
+	for i, meaningIndex in enumerate(testMeanings):
+		print "{0:3d} {1:15} {2:.4f} {3:6.2f}".format(meaningIndex, allMeanings[meaningIndex], scores[i], distances[i])
+	print "\n", "{0:19} {1:.4f} {2:6.2f}".format("Average:", sum(scores) / len(scores), sum(distances) / len(distances))
 
 
 ### Saving to File ###

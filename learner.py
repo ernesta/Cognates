@@ -16,10 +16,7 @@ class Learner:
 	# Creates a new support vector machine.
 	def __init__(self):
 		self.scaler = preprocessing.StandardScaler()
-		
 		self.machine = svm.SVC()
-		self.clustering = cluster.AgglomerativeClustering(n_clusters = 10, affinity = "precomputed", linkage = "average")
-	
 		self.predictedSimilarities = {}
 
 
@@ -38,21 +35,29 @@ class Learner:
 	### Clustering ###
 	# For each meaning, clusters all wordforms in the test dataset.
 	def cluster(self, wordforms, testMeanings, testLanguages, extractor):
+		n = 10
+		
+		clustering = cluster.AgglomerativeClustering(n_clusters = n, affinity = "precomputed", linkage = "average")
+		
 		predictedLabels  = {}
 		predictedClusters = {}
-		
+		minDistances = []
+
 		# For each meaning in test data, clustering is performed separately.
 		for meaningIndex in testMeanings:
-			# Performs clustering to predict cluster assignments for each
-			# wordform.
+			# Runs clustering to predict labels for each wordform.
 			meaningLanguages = self.collectMeaningLanguages(testLanguages, wordforms[meaningIndex])
 			distances = self.computeDistances(meaningLanguages, wordforms[meaningIndex], extractor)
-			predictedLabels[meaningIndex] = self.clustering.fit_predict(numpy.array(distances))
+			predictedLabels[meaningIndex] = clustering.fit_predict(numpy.array(distances))
+			
+			# Finds the smallest distance between clusters.
+			minDistance = self.computeMinClusterDistance(n, distances, predictedLabels[meaningIndex])
+			minDistances.append(minDistance)
 			
 			# Formats the data so that it can be easier read.
 			predictedClusters[meaningIndex] = self.extractClusters(predictedLabels[meaningIndex], meaningLanguages, wordforms[meaningIndex])
-		
-		return predictedLabels, predictedClusters
+
+		return predictedLabels, predictedClusters, minDistances
 	
 	
 	# Depending on how the training and test sets were made, not all languages
@@ -87,6 +92,33 @@ class Learner:
 				distances[i][j] = 1 - self.predictSVM(example)[0]
 	
 		return distances
+	
+	
+	# Given cluster assignments and distances between each wordform of a
+	# meaning, computes average cluster distances and returns the smallest
+	# one.
+	def computeMinClusterDistance(self, n, distances, predictedLabels):
+		clusterSums = [[0] * n for i in range(n)]
+		clusterCounts = [[0] * n for i in range(n)]
+
+		for i in range(len(distances)):
+			iLabel = predictedLabels[i]
+
+			for j in range(i, len(distances)):
+				jLabel = predictedLabels[j]
+
+				distance = distances[i][j]
+
+				clusterSums[iLabel][jLabel] += distance
+				clusterCounts[iLabel][jLabel] += 1
+					
+				clusterSums[jLabel][iLabel] += distance
+				clusterCounts[jLabel][iLabel] += 1
+
+		clusterDistances = numpy.array(clusterSums) / numpy.array(clusterCounts)
+		numpy.fill_diagonal(clusterDistances, 1.0)
+		
+		return clusterDistances.min()
 	
 	
 	# Generates readable clusters from clustering output showing all wordforms

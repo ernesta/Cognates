@@ -39,7 +39,7 @@ def groupDeduction():
 	V1scores = [lrn.computeV1(trueLabels[meaningIndex], predictedLabels[meaningIndex]) for meaningIndex in prr.testMeanings]
 	
 	# Reporting
-	output.reportGroup("Group-based Deduction", V1scores, prr.testMeanings, rdr.meanings)
+	output.reportGroup(V1scores, prr.testMeanings, rdr.meanings)
 
 
 def firstPassLearning():
@@ -76,13 +76,13 @@ def clustering(ext, lrn):
 	trueLabels = ext.extractGroupLabels(rdr.cognateSets, rdr.wordforms, prr.testMeanings, prr.testLanguages)
 	
 	# Learning
-	predictedLabels, predictedSets = lrn.cluster(rdr.wordforms, prr.testMeanings, prr.testLanguages, ext.HK2011Extractor)
+	predictedLabels, predictedSets, minDistances = lrn.cluster(rdr.wordforms, prr.testMeanings, prr.testLanguages, ext.HK2011Extractor)
 	
 	# Evaluation
 	V1scores = [lrn.computeV1(trueLabels[meaningIndex], predictedLabels[meaningIndex]) for meaningIndex in prr.testMeanings]
 	
 	# Reporting
-	output.reportGroup("Clustering", V1scores, prr.testMeanings, rdr.meanings)
+	output.reportCluster(V1scores, minDistances, prr.testMeanings, rdr.meanings)
 
 
 def learningPipeline(ext, lrn, filename):
@@ -108,7 +108,7 @@ rdr.read()
 
 # Pairing
 prr = pairer.Pairer()
-prr.pairByLanguageRatio(rdr.cognateCCNs, rdr.dCognateCCNs, len(rdr.languages), 0.5)
+prr.pairByLanguageRatio(rdr.cognateCCNs, rdr.dCognateCCNs, 0.5)
 #prr.pairByMeaningRatio(rdr.cognateCCNs, rdr.dCognateCCNs, 0.5)
 
 # Deduction

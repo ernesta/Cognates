@@ -83,8 +83,8 @@ class Pairer:
 	# The data is divided into training and test sets by languages. tRatio
 	# decides the fraction of all languages to be used as training data. The
 	# rest of the data is used for testing purposes.
-	def pairByLanguageRatio(self, cognates, dCognates, languageCount, tRatio):
-		countTrain = int(languageCount * tRatio)
+	def pairByLanguageRatio(self, cognates, dCognates, tRatio):
+		countTrain = int(constants.LANGUAGE_COUNT * tRatio)
 		trainLanguages = range(1, countTrain + 1)
 		self.pairByLanguage(cognates, dCognates, trainLanguages)
 	

@@ -2,7 +2,7 @@
 IN = "input.txt"
 
 LANGUAGE_COUNT = 95
-MEANING_COUNT = 10
+MEANING_COUNT = 20
 
 
 # Types
