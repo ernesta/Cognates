@@ -49,3 +49,15 @@ def savePredictions(filename, examples, features, predictions, truth):
 			sFeatures = "[" + "  ".join(["{0:4.1f}".format(feature) for feature in features[i]]) + " ]"
 			
 			output.write("{0:40} {1:20} {2:2} {3:2}\n".format(sExample, sFeatures, truth[i], int(predictions[i])))
+
+
+def saveGroup(filename, predictedSets):
+	with open(filename, "wb") as output:
+		for meaningIndex, groups in predictedSets.iteritems():
+			output.write("Meaning: {0}\n".format(meaningIndex))
+
+			for groupIndex, entries in groups.iteritems():
+				output.write("Group: {0}\n".format(groupIndex))
+				
+				for (wordform, languageIndex) in entries:
+					output.write("{0} ({1})\n".format(wordform, languageIndex))

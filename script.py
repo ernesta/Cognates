@@ -40,6 +40,7 @@ def groupDeduction():
 	
 	# Reporting
 	output.reportGroup(V1scores, prr.testMeanings, rdr.meanings)
+	output.saveGroup("output/identical_letter_groups.txt", predictedSets)
 
 
 def firstPassLearning():
@@ -83,6 +84,7 @@ def clustering(ext, lrn):
 	
 	# Reporting
 	output.reportCluster(V1scores, minDistances, prr.testMeanings, rdr.meanings)
+	output.saveGroup("output/clustering.txt", predictedSets)
 
 
 def learningPipeline(ext, lrn, stage, filename):
