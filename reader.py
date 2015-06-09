@@ -94,10 +94,8 @@ class Reader:
 	### Processing Lines ###
 	# Processes the header line.
 	def processHeader(self, line):
-		splitLine = line.split()
-			
-		meaningIndex = int(splitLine[1])
-		meaning = splitLine[2].lower()
+		meaningIndex = int(line[2 : 5])
+		meaning = line[6 : ].strip().lower()
 
 		self.meanings[meaningIndex] = meaning
 		self.cognateCCNs[meaningIndex] = {}

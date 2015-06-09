@@ -52,7 +52,7 @@ def firstPassLearning():
 	lrn.fitSVM(ext.trainExamples[:, : ext.trainExamples.shape[1] - 1], ext.trainLabels)
 	
 	# Prediction, evaluation, reporting and output
-	prediction = learningPipeline(ext, lrn, "output/HK2011First.txt")
+	prediction = learningPipeline(ext, lrn, "1st Pass", "output/HK2011First.txt")
 	
 	return ext, lrn
 
@@ -66,7 +66,7 @@ def secondPassLearning(ext, lrn):
 	lrn.fitSVM(ext.trainExamples, ext.trainLabels)
 	
 	# Prediction, evaluation, reporting and output
-	prediction = learningPipeline(ext, lrn, "output/HK2011Second.txt")
+	prediction = learningPipeline(ext, lrn, "2nd Pass", "output/HK2011Second.txt")
 	
 	return ext, lrn
 
@@ -85,7 +85,7 @@ def clustering(ext, lrn):
 	output.reportCluster(V1scores, minDistances, prr.testMeanings, rdr.meanings)
 
 
-def learningPipeline(ext, lrn, filename):
+def learningPipeline(ext, lrn, stage, filename):
 	# Predicting
 	predictions = lrn.predictSVM(ext.testExamples)
 	
@@ -94,7 +94,7 @@ def learningPipeline(ext, lrn, filename):
 	report = lrn.evaluatePairwise(ext.testLabels, predictions)
 	
 	# Reporting
-	output.reportPairwiseLearning(prr, accuracy, report)
+	output.reportPairwiseLearning(stage, prr, accuracy, report)
 
 	# Output
 	output.savePredictions(filename, prr.examples[constants.TEST], ext.testExamples, predictions, ext.testLabels)
