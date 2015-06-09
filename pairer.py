@@ -32,14 +32,9 @@ import constants
 		# CCN2: with all forms from any CCN4 group.
 		# CCN2: with all forms from any CCN5 group.
 
-		# CCN3: with all forms from any other CCN3 group.
-		# CCN3: with all forms from any CCN4 group.
-		# CCN3: with all forms from any CCN5 group.
-
 		# CCN4: with all forms from any other CCN4 group (s.t. relationships).
 		# CCN4: with all forms from any CCN5 group (s.t. relationships).
 
-		# CCN5: with all forms from any other CCN5 group (s.t. relationships).
 
 class Pairer:
 	### Initialization ###
@@ -186,9 +181,7 @@ class Pairer:
 
 
 	# Pairs each wordform with a number of other wordforms to generate either a
-	# positive or negative example. CCN1, CCN3, CCN4 and CCN5 only controbute to
-	# the negative examples. Items from the same cognate group in CCN2 and CCN4
-	# contribute to positive examples.
+	# positive or negative example.
 	def pairCCNs(self, meaningIndex, CCNs, dCognates):
 		for CCN, forms in CCNs.iteritems():
 			for i in range(0, len(forms)):
@@ -198,8 +191,7 @@ class Pairer:
 					
 					self.nExamples[meaningIndex].extend(examples)
 					self.nLabels[meaningIndex].extend(labels)
-				
-				elif (CCN >= constants.CCN2_START and CCN <= constants.CCN2_END) or (CCN >= constants.CCN4_START and CCN <= constants.CCN4_END):
+				else:
 					# CCN2: positive examples withing single group.
 					# CCN4: positive examples withing single group.
 					examples, labels = self.matchWithinGroup(i, forms, 1)
@@ -210,8 +202,7 @@ class Pairer:
 				for otherCCN, otherForms in CCNs.iteritems():
 					if (otherCCN > CCN) and (meaningIndex not in dCognates or self.notDoubtful(CCN, otherCCN, dCognates[meaningIndex])):
 						self.pairWithOtherNegatives(meaningIndex, i, forms, otherForms)
-				
-
+	
 
 	# Pairs a single wordform with all other wordforms that constitute a
 	# negative example.
