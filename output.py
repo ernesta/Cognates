@@ -1,4 +1,5 @@
 from __future__ import division
+import pickle
 
 import constants
 
@@ -62,3 +63,36 @@ def saveGroup(filename, predictedSets):
 				
 				for (wordform, languageIndex) in entries:
 					output.write("{0} ({1})\n".format(wordform, languageIndex))
+
+
+### Serialization ###
+# Pickles data stored in extractor and learner objects.
+def pickleLearning(stage, ext, lrn):
+	extData = [ext.trainExamples, ext.trainLabels, ext.testExamples, ext.testLabels]
+	lrnData = [lrn.scaler, lrn.machine, lrn.predictedSimilarities]
+	
+	with open(constants.PICKLE_EXT.format(stage), "wb") as output:
+		pickle.dump(extData, output)
+
+	with open(constants.PICKLE_LRN.format(stage), "wb") as output:
+		pickle.dump(lrnData, output)
+
+
+# Unpickles pickled data, adds it to provided extractor and learner objects.
+def unpickleLearning(stage, ext, lrn):
+	with open(constants.PICKLE_EXT.format(stage), "rb") as input:
+		extData = pickle.load(input)
+
+	with open(constants.PICKLE_LRN.format(stage), "rb") as input:
+		lrnData = pickle.load(input)
+
+	ext.trainExamples = extData[0]
+	ext.trainLabels = extData[1]
+	ext.testExamples = extData[2]
+	ext.testLabels = extData[3]
+
+	lrn.scaler = lrnData[0]
+	lrn.machine = lrnData[1]
+	lrn.predictedSimilarities = lrnData[2]
+
+	return ext, lrn

@@ -46,12 +46,13 @@ def groupDeduction():
 def firstPassLearning():
 	# Feature extraction
 	ext = extractor.Extractor()
+#	ext.MEDBaseline(prr.examples, prr.labels)
 	ext.HK2011Baseline(prr.examples, prr.labels)
-	
+
 	# Learning
 	lrn = learner.Learner()
-	lrn.fitSVM(ext.trainExamples[:, : ext.trainExamples.shape[1] - 1], ext.trainLabels)
-	
+	lrn.fitSVM(ext.trainExamples[:, : ext.testExamples.shape[1]], ext.trainLabels)
+
 	# Prediction, evaluation, reporting and output
 	prediction = learningPipeline(ext, lrn, "1st Pass", "output/HK2011First.txt")
 	
@@ -115,17 +116,21 @@ rdr.read()
 
 # Pairing
 prr = pairer.Pairer()
-prr.pairByMeaningRatio(rdr.cognateCCNs, rdr.dCognateCCNs, 0.8)
+prr.pairByMeaningRatio(rdr.cognateCCNs, rdr.dCognateCCNs, 0.9)
 
 
 # Deduction
 #pairwiseDeduction()
 #groupDeduction()
 
-
-# Learning
+# First Pass
 ext, lrn = firstPassLearning()
-#ext, lrn = secondPassLearning(ext, lrn)
+#output.pickleLearning(1, ext, lrn)
+
+
+# Second Pass
+#ext, lrn = output.unpickleLearning(1, extractor.Extractor(), learner.Learner())
+ext, lrn = secondPassLearning(ext, lrn)
 
 
 # Clustering

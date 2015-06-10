@@ -1,6 +1,6 @@
 # Settings
 LANGUAGE_COUNT = 95
-MEANING_COUNT = 20
+MEANING_COUNT = 200
 
 CLUSTER_MIN = int(LANGUAGE_COUNT * 0.1)
 CLUSTER_MAX = int(LANGUAGE_COUNT * 0.5)
@@ -61,3 +61,5 @@ TARGETS = ["Non-cognates", "Cognates"]
 
 # Formatting
 REPORTING = "{0:30} {1:.4f}"
+PICKLE_EXT = "pickles/ext{0}.pickle"
+PICKLE_LRN = "pickles/lrn{0}.pickle"

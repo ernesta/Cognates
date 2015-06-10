@@ -333,7 +333,7 @@ class Extractor:
 
 
 	### Formatting ###
-	# Formats the output to adhere to scikit-learn requirements.
+	# Formats the output.
 	def formatExamples(self):
 		self.trainExamples = numpy.array(self.trainExamples)
 		self.testExamples = numpy.array(self.testExamples)
