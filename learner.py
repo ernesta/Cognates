@@ -16,7 +16,7 @@ class Learner:
 	# Creates a new support vector machine.
 	def __init__(self):
 		self.scaler = preprocessing.StandardScaler()
-		self.machine = svm.SVC(verbose = True)
+		self.machine = svm.LinearSVC(verbose = True, fit_intercept = False)
 		self.predictedSimilarities = {}
 
 
