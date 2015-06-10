@@ -1,8 +1,15 @@
-# Data
-IN = "input.txt"
-
+# Settings
 LANGUAGE_COUNT = 95
 MEANING_COUNT = 20
+
+CLUSTER_MIN = int(LANGUAGE_COUNT * 0.1)
+CLUSTER_MAX = int(LANGUAGE_COUNT * 0.5)
+
+THRESHOLD = 0.85
+
+
+# Data
+IN = "input.txt"
 
 
 # Types

@@ -35,29 +35,66 @@ class Learner:
 	### Clustering ###
 	# For each meaning, clusters all wordforms in the test dataset.
 	def cluster(self, wordforms, testMeanings, testLanguages, extractor):
-		n = 10
-		
-		clustering = cluster.AgglomerativeClustering(n_clusters = n, affinity = "precomputed", linkage = "average")
-		
-		predictedLabels  = {}
+		predictedLabels = {}
 		predictedClusters = {}
-		minDistances = []
-
-		# For each meaning in test data, clustering is performed separately.
+		clusterCounts = {}
+		clusterDistances = {}
+		
 		for meaningIndex in testMeanings:
-			# Runs clustering to predict labels for each wordform.
 			meaningLanguages = self.collectMeaningLanguages(testLanguages, wordforms[meaningIndex])
 			distances = self.computeDistances(meaningLanguages, wordforms[meaningIndex], extractor)
-			predictedLabels[meaningIndex] = clustering.fit_predict(numpy.array(distances))
 			
-			# Finds the smallest distance between clusters.
-			minDistance = self.computeMinClusterDistance(n, distances, predictedLabels[meaningIndex])
-			minDistances.append(minDistance)
+			for n in range(constants.CLUSTER_MIN, constants.CLUSTER_MAX + 1):
+				# Clusters the data into n groups.
+				clustering = cluster.AgglomerativeClustering(n_clusters = n, affinity = "precomputed", linkage = "average")
+				labels = clustering.fit_predict(numpy.array(distances))
 			
-			# Formats the data so that it can be easier read.
-			predictedClusters[meaningIndex] = self.extractClusters(predictedLabels[meaningIndex], meaningLanguages, wordforms[meaningIndex])
+				# Finds the smallest distance between clusters.
+				minDistance = self.computeMinClusterDistance(n, distances, labels)
+				
+				if minDistance <= constants.THRESHOLD:
+					predictedLabels[meaningIndex] = labels
+					predictedClusters[meaningIndex] = self.extractClusters(labels, meaningLanguages, wordforms[meaningIndex])
+					
+					clusterCounts[meaningIndex] = n
+					clusterDistances[meaningIndex] = minDistance
+					
+					break
 
-		return predictedLabels, predictedClusters, minDistances
+		return predictedLabels, predictedClusters, clusterCounts, clusterDistances
+	
+	
+	# Computes the optimal cluster distance threshold for clustering.
+	def computeDistanceThreshold(self, wordforms, testMeanings, testLanguages, extractor, trueLabels):
+		sumDistances = 0.0
+		
+		for meaningIndex in testMeanings:
+			V1scores = []
+			minDistances = []
+			
+			meaningLanguages = self.collectMeaningLanguages(testLanguages, wordforms[meaningIndex])
+			distances = self.computeDistances(meaningLanguages, wordforms[meaningIndex], extractor)
+	
+			for n in range(constants.CLUSTER_MIN, constants.CLUSTER_MAX + 1):
+				clustering = cluster.AgglomerativeClustering(n_clusters = n, affinity = "precomputed", linkage = "average")
+				labels = clustering.fit_predict(numpy.array(distances))
+				
+				# Finds the smallest distance between clusters.
+				minDistance = self.computeMinClusterDistance(n, distances, labels)
+				V1 = self.computeV1(trueLabels[meaningIndex], labels)
+				
+				print meaningIndex, n, V1, minDistance
+			
+				minDistances.append(minDistance)
+				V1scores.append(V1)
+			
+			print "\n"
+				
+			maxV1 = max(V1scores)
+			index = V1scores.index(maxV1)
+			sumDistances += minDistances[index]
+	
+		return sumDistances / len(testMeanings)
 	
 	
 	# Depending on how the training and test sets were made, not all languages

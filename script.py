@@ -75,15 +75,19 @@ def secondPassLearning(ext, lrn):
 def clustering(ext, lrn):
 	# Feature Extraction
 	trueLabels = ext.extractGroupLabels(rdr.cognateSets, rdr.wordforms, prr.testMeanings, prr.testLanguages)
-	
+
+	# Threshold
+#	threshold = lrn.computeDistanceThreshold(rdr.wordforms, prr.testMeanings, prr.testLanguages, ext.HK2011Extractor, trueLabels)
+#	print "Threshold:", threshold
+
 	# Learning
-	predictedLabels, predictedSets, minDistances = lrn.cluster(rdr.wordforms, prr.testMeanings, prr.testLanguages, ext.HK2011Extractor)
+	predictedLabels, predictedSets, clusterCounts, clusterDistances = lrn.cluster(rdr.wordforms, prr.testMeanings, prr.testLanguages, ext.HK2011Extractor)
 	
 	# Evaluation
-	V1scores = [lrn.computeV1(trueLabels[meaningIndex], predictedLabels[meaningIndex]) for meaningIndex in prr.testMeanings]
+	V1scores = {meaningIndex: lrn.computeV1(trueLabels[meaningIndex], predictedLabels[meaningIndex]) for meaningIndex in prr.testMeanings}
 	
 	# Reporting
-	output.reportCluster(V1scores, minDistances, prr.testMeanings, rdr.meanings)
+	output.reportCluster(V1scores, clusterCounts, clusterDistances, rdr.meanings)
 	output.saveGroup("output/clustering.txt", predictedSets)
 
 
@@ -108,18 +112,25 @@ def learningPipeline(ext, lrn, stage, filename):
 rdr = reader.Reader(constants.IN)
 rdr.read()
 
+
 # Pairing
 prr = pairer.Pairer()
-prr.pairByLanguageRatio(rdr.cognateCCNs, rdr.dCognateCCNs, 0.5)
-#prr.pairByMeaningRatio(rdr.cognateCCNs, rdr.dCognateCCNs, 0.5)
+prr.pairByMeaningRatio(rdr.cognateCCNs, rdr.dCognateCCNs, 0.8)
+
 
 # Deduction
-pairwiseDeduction()
-groupDeduction()
+#pairwiseDeduction()
+#groupDeduction()
+
 
 # Learning
 ext, lrn = firstPassLearning()
-ext, lrn = secondPassLearning(ext, lrn)
+#ext, lrn = secondPassLearning(ext, lrn)
+
 
 # Clustering
 clustering(ext, lrn)
+
+
+# Output
+#output.saveGroup("output/true_groups.txt", rdr.cognateSets)
