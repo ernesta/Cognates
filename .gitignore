@@ -3,6 +3,7 @@
 
 # Output
 output/
+pickles/
 
 # OS Files
 .DS_Store
