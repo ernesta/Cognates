@@ -1,4 +1,5 @@
 from __future__ import division
+import math
 import os
 
 from leven import levenshtein
@@ -266,6 +267,11 @@ class Extractor:
 		return float(levenshtein(form1, form2))
 	
 	
+	# Computes normalized minimum edit distance.
+	def basicNED(self, form1, form2):
+		return self.basicMED / self.longerWordLen(form1, form2)
+	
+	
 	# Computes the length of the longest common prefix of the two wordforms.
 	def LCPLength(self, form1, form2):
 		return float(len(os.path.commonprefix([form1, form2])))
@@ -278,6 +284,11 @@ class Extractor:
 		return float(len(subsequence))
 	
 	
+	# Computes the longest common subsequence ratio (Melamed, 1999).
+	def LCSR(self, form1, form2):
+		return self.LCSLength(form1, form2) / self.longerWordLen(form1, form2)
+	
+	
 	# Computes Dice's coefficient based on shared bigrams.
 	def bigramDice(self, form1, form2):
 		return self.ngramDice(2, form1, form2)
@@ -286,6 +297,33 @@ class Extractor:
 	# Computes Dice's coefficient based on shared trigrams.
 	def trigramDice(self, form1, form2):
 		return self.ngramDice(3, form1, form2)
+	
+	
+	# A variant of Dice's coefficient based on shared extended bigrams (Brew &
+	# McKelvie, 1996).
+	def xBigramDice(self, form1, form2):
+		if len(form1) < 3 or len(form2) < 3:
+			return 0.0
+		else:
+			return 2 * self.commonXBigramNumber(form1, form2) / (len(form1) + len(form2) - 4)
+	
+	
+	# A variant of Dice's coefficient based on shared extended bigrams and the
+	# distance between positions of each shared exteded bigram in the two
+	# wordforms. Each shared bigram thus contributes not 2 to the numerator, but
+	# rather 2 / (1 + (pos(x) + pos(y))^2), where x and y are the two wordforms
+	# (Brew & McKelvie, 1996).
+	def xxBigramDice(self, form1, form2):
+		if len(form1) < 3 or len(form2) < 3:
+			return 0.0
+		else:
+			positions1, positions2 = self.commonNgramPositions(self.xBigrams(form1), self.xBigrams(form2))
+
+			weights = 0.0
+			for i, pos1 in enumerate(positions1):
+				weights += 2 / (1 + math.pow(pos1 - positions2[i], 2))
+			
+			return weights / (len(form1) + len(form2) - 4)
 	
 	
 	# Computes Dice's coefficient based on n-grams of the two wordforms, where
@@ -308,6 +346,12 @@ class Extractor:
 		return self.commonNgramNumber(3, form1, form2)
 	
 	
+	# Computes the number of extended bigrams the two words share.
+	def commonXBigramNumber(self, form1, form2):
+		commonXBigrams = self.commonNgrams(self.xBigrams(form1), self.xBigrams(form2))
+		return float(len(commonXBigrams))
+	
+	
 	# Computes the number of n-grams the two words share.
 	def commonNgramNumber(self, n, form1, form2):
 		commonNgrams = self.commonNgrams(self.ngrams(n, form1), self.ngrams(n, form2))
@@ -322,7 +366,12 @@ class Extractor:
 	# Computes the ratio of shared trigrams of the two words.
 	def commonTrigramRatio(self, form1, form2):
 		return self.commonNgramRatio(3, form1, form2)
-
+	
+	
+	# Computes the ratio of shared extended bigrams of the two words.
+	def commonXBigramRatio(self, form1, form2):
+		return self.commonXBigramNumber(form1,form2) / (self.longerWordLen(form1, form2) - 2)
+	
 
 	# Computes the pair's shared n-gram ratio by dividing the number of shared
 	# n-grams of the two wordforms by the number of n-grams in the longer word.
@@ -355,24 +404,54 @@ class Extractor:
 			return firstForm1 + self.LCS(restForm1, restForm2)
 		else:
 			return max(self.LCS(form1, restForm2), self.LCS(restForm1, form2), key = len)
-	
-	
+
+
 	# Generates a list of the word's n-grams.
 	def ngrams(self, n, word):
 		return [word[i : i + n] for i in range(len(word) - n + 1)]
 	
 	
+	# Generates a list of extended bigrams (formed by deleting the middle letter
+	# from a three-letter substring).
+	def xBigrams(self, word):
+		return [word[i] + word[i + 2] for i in range(len(word) - 2)]
+	
+	
 	# Given two n-gram lists, creates a single list that contains all common
 	# ngrams.
-	def commonNgrams(self, bigrams1, bigrams2):
+	def commonNgrams(self, ngrams1, ngrams2):
+		ngrams2 = ngrams2[:]
 		ngrams = []
 	
-		for bigram in bigrams1:
-			if bigram in bigrams2:
-				ngrams.append(bigram)
-				bigrams2.remove(bigram)
+		for ngram in ngrams1:
+			if ngram in ngrams2:
+				ngrams.append(ngram)
+				ngrams2.remove(ngram)
 
 		return ngrams
+	
+	
+	# Finds positions of shared n-grams within the two wordforms. When the same
+	# n-gram appears multiple times in a word, preference is given to the n-gram
+	# closer to the beginning of the word.
+	def commonNgramPositions(self, ngrams1, ngrams2):
+		ngrams = self.commonNgrams(ngrams1, ngrams2)
+		
+		positions1 = []
+		positions2 = []
+		
+		for ngram in ngrams:
+			for i, ngram1 in enumerate(ngrams1):
+				if ngram == ngram1 and i not in positions1:
+					positions1.append(i)
+					break
+	
+			for j, ngram2 in enumerate(ngrams2):
+				if ngram == ngram2 and j not in positions2:
+					positions2.append(j)
+					break
+		
+		return positions1, positions2
 	
 	
 	### Baseline Tests ###
