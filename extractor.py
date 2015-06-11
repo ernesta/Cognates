@@ -16,8 +16,8 @@ class Extractor:
 		self.identicalWordsMeasure = [self.identicalWords]
 		self.identicalFirstLettersMeasure = [self.identicalFirstLetters]
 		self.identicalPrefixesMeasure = [self.identicalPrefixes]
-		self.MEDMeasure = [self.MED]
-		self.HK2011Measures = [self.MED, self.LCPLength, self.commonBigramNumber, self.longerWordLen, self.shorterWordLen, self.wordLenDifference]
+		self.MEDMeasure = [self.basicMED]
+		self.HK2011Measures = [self.basicMED, self.LCPLength, self.commonBigramNumber, self.longerWordLen, self.shorterWordLen, self.wordLenDifference]
 		
 		self.trainExamples = []
 		self.trainLabels = []
@@ -260,8 +260,9 @@ class Extractor:
 		return float(self.LCPLength(form1, form2) > 3)
 	
 	
-	# Computes minimum edit distance between the two wordforms.
-	def MED(self, form1, form2):
+	# Computes minimum edit distance between the two wordforms. Here, all edit
+	# operations have a cost of 1.
+	def basicMED(self, form1, form2):
 		return float(levenshtein(form1, form2))
 	
 	
@@ -270,13 +271,63 @@ class Extractor:
 		return float(len(os.path.commonprefix([form1, form2])))
 	
 	
+	# Computes the length of the longest common subsequence of the two
+	# wordforms.
+	def LCSLength(self, form1, form2):
+		subsequence = self.LCS(form1, form2)
+		return float(len(subsequence))
+	
+	
+	# Computes Dice's coefficient based on shared bigrams.
+	def bigramDice(self, form1, form2):
+		return self.ngramDice(2, form1, form2)
+	
+	
+	# Computes Dice's coefficient based on shared trigrams.
+	def trigramDice(self, form1, form2):
+		return self.ngramDice(3, form1, form2)
+	
+	
+	# Computes Dice's coefficient based on n-grams of the two wordforms, where
+	# s = 2z / x + y (s: similarity, z: number of shared n-grams, x: number of
+	# n-grams in the first word, and y: number of n-grams in the second word.
+	def ngramDice(self, n, form1, form2):
+		if len(form1) < n or len(form2) < n:
+			return 0.0
+		else:
+			return 2 * self.commonNgramNumber(n, form1, form2) / (len(form1) + len(form2) - 2 * (n - 1))
+
+	
 	# Computes the number of bigrams the two words share.
 	def commonBigramNumber(self, form1, form2):
-		bigrams1 = self.ngrams(2, form1)
-		bigrams2 = self.ngrams(2, form2)
+		return self.commonNgramNumber(2, form1, form2)
 	
-		commonBigrams = self.commonNgrams(bigrams1, bigrams2)
-		return float(len(commonBigrams))
+	
+	# Computes the number of trigrams the two words share.
+	def commonTrigramNumber(self, form1, form2):
+		return self.commonNgramNumber(3, form1, form2)
+	
+	
+	# Computes the number of n-grams the two words share.
+	def commonNgramNumber(self, n, form1, form2):
+		commonNgrams = self.commonNgrams(self.ngrams(n, form1), self.ngrams(n, form2))
+		return float(len(commonNgrams))
+	
+	
+	# Computes the ratio of shared bigrams of the two words.
+	def commonBigramRatio(self, form1, form2):
+		return self.commonNgramRatio(2, form1, form2)
+	
+	
+	# Computes the ratio of shared trigrams of the two words.
+	def commonTrigramRatio(self, form1, form2):
+		return self.commonNgramRatio(3, form1, form2)
+
+
+	# Computes the pair's shared n-gram ratio by dividing the number of shared
+	# n-grams of the two wordforms by the number of n-grams in the longer word.
+	def commonNgramRatio(self, n, form1, form2):
+		return self.commonNgramNumber(n, form1,form2) / (self.longerWordLen(form1, form2) - (n - 1))
 	
 	
 	# Computes the length of the longer of the two words.
@@ -294,12 +345,24 @@ class Extractor:
 		return float(abs(len(form1) - len(form2)))
 	
 	
+	# Finds the longest common subsequence of the two wordforms.
+	def LCS(self, form1, form2):
+		if not form1 or not form2:
+			return ""
+		
+		firstForm1, restForm1, firstForm2, restForm2 = form1[0], form1[1 :], form2[0], form2[1 :]
+		if firstForm1 == firstForm2:
+			return firstForm1 + self.LCS(restForm1, restForm2)
+		else:
+			return max(self.LCS(form1, restForm2), self.LCS(restForm1, form2), key = len)
+	
+	
 	# Generates a list of the word's n-grams.
 	def ngrams(self, n, word):
 		return [word[i : i + n] for i in range(len(word) - n + 1)]
 	
 	
-	# Given two ngram lists, creates a single list that contains all common
+	# Given two n-gram lists, creates a single list that contains all common
 	# ngrams.
 	def commonNgrams(self, bigrams1, bigrams2):
 		ngrams = []
