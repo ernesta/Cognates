@@ -95,7 +95,7 @@ class Reader:
 	# Processes the header line.
 	def processHeader(self, line):
 		meaningIndex = int(line[2 : 5])
-		meaning = line[6 : ].strip().lower()
+		meaning = line[6 :].strip().lower()
 
 		self.meanings[meaningIndex] = meaning
 		self.cognateCCNs[meaningIndex] = {}
@@ -126,6 +126,7 @@ class Reader:
 		self.currentLanguageIndex = int(line[6 : 8])
 		language = line[9 : 24].strip().lower().title()
 		
+		# Allows only a subset of all languages to be read.
 		if self.currentLanguageIndex <= constants.LANGUAGE_COUNT:
 			form = self.parseForms(line)
 		
