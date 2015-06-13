@@ -1,6 +1,7 @@
 # Settings
 LANGUAGE_COUNT = 95
 MEANING_COUNT = 200
+TRAIN_MEANINGS = 160
 
 CLUSTER_MIN = int(LANGUAGE_COUNT * 0.1)
 CLUSTER_MAX = int(LANGUAGE_COUNT * 0.5)
@@ -65,8 +66,12 @@ IDENTICAL_LETTER = 2
 MED = 0
 HK2011 = 1
 
+SVM = 0
+LR = 1
+
 DEDUCERS = ["Identical Words", "Identical Prefixes", "Identical First Letter"]
-LEARNERS = ["Minimum Edit Distance", "Hauer & Kondrak, 2011"]
+MEASURES = ["Minimum Edit Distance", "Hauer & Kondrak, 2011"]
+MODELS = ["SVM", "Linear Regression"]
 
 
 # Classes
@@ -74,6 +79,7 @@ TARGETS = ["Non-cognates", "Cognates"]
 
 
 # Formatting
-REPORTING = "{0:30} {1:.4f}"
+P_VALUE = "p-value = {0:.4f}\n"
 PICKLE_EXT = "pickles/ext{0}.pickle"
 PICKLE_LRN = "pickles/lrn{0}.pickle"
+REPORTING = "{0:30} {1:.4f}"

@@ -3,6 +3,7 @@ import random
 
 from sklearn import cluster
 from sklearn import cross_validation
+from sklearn import linear_model
 from sklearn import metrics
 from sklearn import preprocessing
 from sklearn import svm
@@ -14,28 +15,47 @@ import constants
 
 class Learner:
 	### Initialization ###
-	# Creates a new support vector machine.
+	# Initializes the standard scaler and various learning algorithms.
 	def __init__(self):
 		self.scaler = preprocessing.StandardScaler()
-		self.machine = svm.LinearSVC(verbose = True, fit_intercept = False)
+		
+		self.SVM = svm.LinearSVC(verbose = True, fit_intercept = False)
+		self.LR = linear_model.LogisticRegression()
+		
 		self.predictedSimilarities = {}
 
 
 	### SVM ###
 	# Scales the data to ~N(0, 1), stores scaling information for later
-	# reference, fits the model.
+	# reference, fits the SVM model.
 	def fitSVM(self, trainExamples, trainLabels):
-		self.machine.fit(self.scaler.fit_transform(trainExamples), trainLabels)
+		self.SVM.fit(self.scaler.fit_transform(trainExamples), trainLabels)
 	
 	
-	# Scales the data, generates predictions.
+	# Scales the data, generates SVM predictions.
 	def predictSVM(self, testExamples):
-		return self.machine.predict(self.scaler.transform(testExamples))
+		return self.SVM.predict(self.scaler.transform(testExamples))
+	
+	
+	# Scales the data to ~N(0, 1), stores scaling information for later
+	# reference, fits the linear regression.
+	def fitLinearRegression(self, trainExamples, trainLabels):
+		self.LR.fit(self.scaler.fit_transform(trainExamples), trainLabels)
+	
+	
+	# Scales the data, generates linear regression class predictions.
+	def predictLinearRegression(self, testExamples):
+		return self.LR.predict(self.scaler.transform(testExamples))
+	
+	
+	# Scales the data, generates linear regression probability predictions.
+	def predictProbLinearRegression(self, testExamples):
+		return self.LR.predict_proba(self.scaler.transform(testExamples))[1]
 	
 	
 	### Clustering ###
 	# For each meaning, clusters all wordforms in the test dataset.
-	def cluster(self, wordforms, testMeanings, testLanguages, extractor):
+	def cluster(self, model, wordforms, testMeanings, testLanguages, extractor):
 		predictedLabels = {}
 		predictedClusters = {}
 		clusterCounts = {}
@@ -43,7 +63,7 @@ class Learner:
 		
 		for meaningIndex in testMeanings:
 			meaningLanguages = self.collectMeaningLanguages(testLanguages, wordforms[meaningIndex])
-			distances = self.computeDistances(meaningLanguages, wordforms[meaningIndex], extractor)
+			distances = self.computeDistances(model, meaningLanguages, wordforms[meaningIndex], extractor)
 			
 			for n in range(constants.CLUSTER_MIN, constants.CLUSTER_MAX + 1):
 				# Clusters the data into n groups.
@@ -66,7 +86,7 @@ class Learner:
 	
 	
 	# Computes the optimal cluster distance threshold for clustering.
-	def computeDistanceThreshold(self, wordforms, testMeanings, testLanguages, extractor, trueLabels):
+	def computeDistanceThreshold(self, model, wordforms, testMeanings, testLanguages, extractor, trueLabels):
 		sumDistances = 0.0
 		
 		for meaningIndex in testMeanings:
@@ -74,7 +94,7 @@ class Learner:
 			minDistances = []
 			
 			meaningLanguages = self.collectMeaningLanguages(testLanguages, wordforms[meaningIndex])
-			distances = self.computeDistances(meaningLanguages, wordforms[meaningIndex], extractor)
+			distances = self.computeDistances(model, meaningLanguages, wordforms[meaningIndex], extractor)
 	
 			for n in range(constants.CLUSTER_MIN, constants.CLUSTER_MAX + 1):
 				clustering = cluster.AgglomerativeClustering(n_clusters = n, affinity = "precomputed", linkage = "average")
@@ -108,7 +128,7 @@ class Learner:
 	
 	# Generates a matrix of all possible languages, with cell values set to the
 	# distance between every two word pairs for the given meaning.
-	def computeDistances(self, meaningLanguages, meaningWordforms, extractor):
+	def computeDistances(self, model, meaningLanguages, meaningWordforms, extractor):
 		languageCount = len(meaningLanguages)
 		
 		distances = [[0] * languageCount for i in range(languageCount)]
@@ -127,7 +147,11 @@ class Learner:
 					continue
 			
 				example = extractor(form1, form2, self.predictedSimilarities[language1][language2]) if self.predictedSimilarities else extractor(form1, form2)
-				distances[i][j] = 1 - self.predictSVM(example)[0]
+				
+				if model == constants.SVM:
+					distances[i][j] = 1 - self.predictSVM(example)[0]
+				elif model == constants.LR:
+					distances[i][j] = 1 - self.predictProbLinearRegression(example)[0]
 	
 		return distances
 	
@@ -209,6 +233,8 @@ class Learner:
 		swap = 1 if (statistic1 > statistic2) else -1
 		difference = (statistic1 - statistic2) * swap
 		
+		m = int(constants.PERMUTATIONS * 0.1)
+		
 		n = 0
 		for i in range(constants.PERMUTATIONS):
 			perm1, perm2 = self.permuteLabels(predictions1, predictions2)
@@ -218,6 +244,9 @@ class Learner:
 	
 			if diff >= difference:
 				n += 1
+	
+			if i % m == 0:
+				print "Permutation test, {0}% done.".format(int(i * 100 / constants.PERMUTATIONS))
 	
 		return (n + 1) / (constants.PERMUTATIONS + 1)
 
@@ -241,14 +270,14 @@ class Learner:
 	# word pair for every meaning. Uses these predictions to compute predicted
 	# language pair similarity as a ratio of positive predictions to all
 	# predictions.
-	def predictLanguageSimilarity(self, wordforms, extractor):
-		predictedCounts = self.countPredictions(wordforms, extractor)
+	def predictLanguageSimilarity(self, model, wordforms, extractor):
+		predictedCounts = self.countPredictions(model, wordforms, extractor)
 		self.computeSimilarity(predictedCounts)
 		
 
 	# Generates a cognateness decision for each wordform and meaning, counts the
 	# number of positive and all predictions for each language pair.
-	def countPredictions(self, wordforms, extractor):
+	def countPredictions(self, model, wordforms, extractor):
 		# Initializes the predicted counts dictionary so that it can later be
 		# used without additional key existence checks.
 		predictedCounts = {i: {j: [0, 0] for j in range(constants.LANGUAGE_COUNT + 1)} for i in range(constants.LANGUAGE_COUNT + 1)}
@@ -263,8 +292,11 @@ class Learner:
 					
 					if not form1 or not form2:
 						continue
-				
-					prediction = self.predictSVM(extractor(form1, form2))
+					
+					if model == constants.SVM:
+						prediction = self.predictSVM(extractor(form1, form2))
+					elif model == constants.LR:
+						prediction = self.predictLinearRegression(extractor(form1, form2))
 					
 					predictedCounts[language1][language2][0] += 1
 					predictedCounts[language1][language2][1] += prediction
