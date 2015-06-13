@@ -7,8 +7,8 @@ import constants
 
 ### Printing to Terminal ###
 # Prints to terminal key pairwise deduction results.
-def reportPairwiseDeduction(prr, accuracy, report):
-	print "\n", "### Pairwise Deduction ###"
+def reportPairwiseDeduction(stage, prr, accuracy, report):
+	print "\n", "### Pairwise Deduction (" + stage + ") ###"
 	print constants.REPORTING.format("Negative test examples:", (1 - prr.positiveCounts[constants.TEST] / prr.allCounts[constants.TEST]))
 	print "\n", constants.REPORTING.format("Accuracy:", accuracy)
 	print "\n", report
@@ -25,8 +25,8 @@ def reportPairwiseLearning(stage, prr, accuracy, report):
 
 
 # Prints to terminal key group-based deduction results.
-def reportGroup(scores, testMeanings, allMeanings):
-	print "\n", "### Group-based Deduction ###"
+def reportGroup(stage, scores, testMeanings, allMeanings):
+	print "\n", "### Group-based Deduction (" + stage + ") ###"
 	for i, meaningIndex in enumerate(testMeanings):
 		print "{0:3d} {1:26} {2:.4f}".format(meaningIndex, allMeanings[meaningIndex], scores[i])
 	print "\n", "{0:30} {1:.4f}".format("Average:", sum(scores) / len(scores)), "\n"

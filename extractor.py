@@ -15,8 +15,8 @@ class Extractor:
 	def __init__(self):
 		# Measures
 		self.identicalWordsMeasure = [self.identicalWords]
-		self.identicalFirstLettersMeasure = [self.identicalFirstLetters]
-		self.identicalPrefixesMeasure = [self.identicalPrefixes]
+		self.identicalFirstLetterMeasure = [self.identicalFirstLetter]
+		self.identicalPrefixMeasure = [self.identicalPrefix]
 		self.MEDMeasure = [self.basicMED]
 		self.HK2011Measures = [self.basicMED, self.LCPLength, self.commonBigramNumber, self.longerWordLen, self.shorterWordLen, self.wordLenDifference]
 		
@@ -31,22 +31,23 @@ class Extractor:
 	# Identical words baseline (pairwise deduction).
 	def identicalWordsBaseline(self, allExamples, allLabels):
 		self.batchCompute(allExamples, allLabels, self.identicalWordsMeasure)
-
-	
-	# Identical first letter baseline (pairwise deduction).
-	def identicalFirstLettersBaseline(self, allExamples, allLabels):
-		self.batchCompute(allExamples, allLabels, self.identicalFirstLettersMeasure)
 	
 	
 	# Identical prefix baseline (pairwise deduction).
-	def identicalPrefixesBaseline(self, allExamples, allLabels):
-		self.batchCompute(allExamples, allLabels, self.identicalPrefixesMeasure)
+	def identicalPrefixBaseline(self, allExamples, allLabels):
+		self.batchCompute(allExamples, allLabels, self.identicalPrefixMeasure)
+	
+	
+	# Identical first letter baseline (pairwise deduction).
+	def identicalFirstLetterBaseline(self, allExamples, allLabels):
+		self.batchCompute(allExamples, allLabels, self.identicalFirstLetterMeasure)
 	
 	
 	# Minimum edit distance baseline (assumes costs of insertion, deletion and
 	# substitution are all 1).
 	def MEDBaseline(self, allExamples, allLabels):
 		self.batchCompute(allExamples, allLabels, self.MEDMeasure)
+		self.addLanguageSimilarity(allExamples)
 	
 	
 	### Group-based Baselines ###
@@ -71,16 +72,16 @@ class Extractor:
 		return self.groupBaseline(self.getWordform, testMeanings, testLanguages, wordforms)
 	
 	
-	# Arranges wordforms into groups of items sharing the same first letter.
-	def identicalFirstLettersGroupBaseline(self, testMeanings, testLanguages, wordforms):
-		return self.groupBaseline(self.getFirstLetter, testMeanings, testLanguages, wordforms)
-	
-	
 	# Arranges wordforms into groups of items sharing the first 4 letters (note
 	# that if a word is shorter than 4 letters, it is automatically placed in
 	# a separate cluster).
-	def identicalPrefixesGroupBaseline(self, testMeanings, testLanguages, wordforms):
+	def identicalPrefixGroupBaseline(self, testMeanings, testLanguages, wordforms):
 		return self.groupBaseline(self.getPrefix, testMeanings, testLanguages, wordforms)
+	
+	
+	# Arranges wordforms into groups of items sharing the same first letter.
+	def identicalFirstLetterGroupBaseline(self, testMeanings, testLanguages, wordforms):
+		return self.groupBaseline(self.getFirstLetter, testMeanings, testLanguages, wordforms)
 	
 	
 	# Arranges wordforms for each meaning in groups of cognates, where a
@@ -127,6 +128,11 @@ class Extractor:
 	# words.
 	def HK2011Extractor(self, form1, form2, langSimilarity = None):
 		return self.compute(form1, form2, self.HK2011Measures, langSimilarity)
+	
+	
+	# Extracts the minumum edit distance feature from a pair of words.
+	def MEDExtractor(self, form1, form2, langSimilarity = None):
+		return self.compute(form1, form2, self.MEDMeasure, langSimilarity)
 	
 	
 	### Language Similarity ###
@@ -251,13 +257,13 @@ class Extractor:
 
 	
 	# Checks if the two wordforms have the same first letter.
-	def identicalFirstLetters(self, form1, form2):
+	def identicalFirstLetter(self, form1, form2):
 		return float(form1[0] == form2[0])
 	
 	
 	# Checks if the two wordforms have an identical prefix that is at least 4
 	# characters long.
-	def identicalPrefixes(self, form1, form2):
+	def identicalPrefix(self, form1, form2):
 		return float(self.LCPLength(form1, form2) > 3)
 	
 	

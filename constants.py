@@ -5,6 +5,8 @@ MEANING_COUNT = 200
 CLUSTER_MIN = int(LANGUAGE_COUNT * 0.1)
 CLUSTER_MAX = int(LANGUAGE_COUNT * 0.5)
 
+PERMUTATIONS = 1000
+
 THRESHOLD = 0.85
 
 
@@ -53,6 +55,18 @@ DOUBTFUL_COGNATION = 3
 TRAIN = 0
 TEST = 2
 ALL = 3
+
+
+# METHODS
+IDENTICAL_WORDS = 0
+IDENTICAL_PREFIX = 1
+IDENTICAL_LETTER = 2
+
+MED = 0
+HK2011 = 1
+
+DEDUCERS = ["Identical Words", "Identical Prefixes", "Identical First Letter"]
+LEARNERS = ["Minimum Edit Distance", "Hauer & Kondrak, 2011"]
 
 
 # Classes

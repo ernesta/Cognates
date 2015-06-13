@@ -1,4 +1,5 @@
 from __future__ import division
+import random
 
 from sklearn import cluster
 from sklearn import cross_validation
@@ -180,18 +181,61 @@ class Learner:
 		return metrics.accuracy_score(truth, predictions)
 	
 	
-	# Generates an evaluation report, where precision, recall and F-1 scores are
-	# reported for each class separately, and for the entire dataset.
-	def evaluatePairwise(self, truth, predictions):
-		return metrics.classification_report(truth, predictions, target_names = constants.TARGETS)
+	# Computes F1 of the positive class by comparing predictions to the truth.
+	def computeF1(self, truth, predictions):
+		return metrics.f1_score(truth, predictions)
 	
 	
 	# Computes the V1 score of the predicted grouping of wordforms for a meaning
 	# compared to the actual cognate grouping.
 	def computeV1(self, truth, predictions):
 		return metrics.v_measure_score(truth, predictions)
-
 	
+	
+	# Generates an evaluation report, where precision, recall and F-1 scores are
+	# reported for each class separately, and for the entire dataset.
+	def evaluatePairwise(self, truth, predictions):
+		return metrics.classification_report(truth, predictions, target_names = constants.TARGETS)
+	
+	
+	# Computes the probability that predictions of the two models are truly
+	# different, and thus the resulting F1 scores indeed indicate significant
+	# difference in the performance of the two models. This here uses a Monte
+	# Carlo approximation of a paired permutation significance test.
+	def computePairwiseSignificance(self, truth, predictions1, predictions2):
+		statistic1 = self.computeF1(truth, predictions1)
+		statistic2 = self.computeF1(truth, predictions2)
+		
+		swap = 1 if (statistic1 > statistic2) else -1
+		difference = (statistic1 - statistic2) * swap
+		
+		n = 0
+		for i in range(constants.PERMUTATIONS):
+			perm1, perm2 = self.permuteLabels(predictions1, predictions2)
+			statistic1 = self.computeAccuracy(truth, perm1)
+			statistic2 = self.computeAccuracy(truth, perm2)
+			diff = (statistic1 - statistic2) * swap
+	
+			if diff >= difference:
+				n += 1
+	
+		return (n + 1) / (constants.PERMUTATIONS + 1)
+
+
+	# Shuffles paired labels with a probability of a fair coin toss.
+	def permuteLabels(self, labels1, labels2):
+		nLabels1 = []
+		nLabels2 = []
+
+		for i in range(len(labels1)):
+			choice = [labels1[i], labels2[i]]
+			random.shuffle(choice)
+			nLabels1.append(choice[0])
+			nLabels2.append(choice[1])
+
+		return nLabels1, nLabels2
+
+
 	### Predicted Language Similarity ###
 	# Uses the learner to generate cognatenes predictions for every possible
 	# word pair for every meaning. Uses these predictions to compute predicted

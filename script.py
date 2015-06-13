@@ -10,28 +10,45 @@ import reader
 
 
 # FUNCTIONS
-def pairwiseDeduction():
+def pairwiseDeduction(method):
 	# Feature extraction
 	ext = extractor.Extractor()
-	ext.identicalWordsBaseline(prr.examples, prr.labels)
+	
+	if method == constants.IDENTICAL_WORDS:
+		ext.identicalWordsBaseline(prr.examples, prr.labels)
+	elif method == constants.IDENTICAL_PREFIX:
+		ext.identicalPrefixBaseline(prr.examples, prr.labels)
+	elif method == constants.IDENTICAL_LETTER:
+		ext.identicalFirstLetterBaseline(prr.examples, prr.labels)
+	
+	predictedLabels = ext.testExamples.reshape((ext.testExamples.shape[0],))
 
 	# Evaluation
 	lrn = learner.Learner()
 	accuracy = lrn.computeAccuracy(ext.testLabels, ext.testExamples)
 	report = lrn.evaluatePairwise(ext.testLabels, ext.testExamples)
-
+	
 	# Reporting
-	output.reportPairwiseDeduction(prr, accuracy, report)
+	output.reportPairwiseDeduction(constants.DEDUCERS[method], prr, accuracy, report)
 	
 	# Output
-	filename = "output/identical_word.txt"
-	output.savePredictions(filename, prr.examples[constants.TEST], ext.testExamples, numpy.array(ext.testExamples), ext.testLabels)
+	filename = "output/Pairwise " + constants.DEDUCERS[method] + ".txt"
+	output.savePredictions(filename, prr.examples[constants.TEST], ext.testExamples, predictedLabels, ext.testLabels)
+
+	return predictedLabels, ext.testLabels
 
 
-def groupDeduction():
+def groupDeduction(method):
 	# Feature extraction
 	ext = extractor.Extractor()
-	predictedLabels, predictedSets = ext.identicalFirstLettersGroupBaseline(prr.testMeanings, prr.testLanguages, rdr.wordforms)
+	
+	if method == constants.IDENTICAL_WORDS:
+		predictedLabels, predictedSets = ext.identicalWordsGroupBaseline(prr.testMeanings, prr.testLanguages, rdr.wordforms)
+	elif method == constants.IDENTICAL_PREFIX:
+		predictedLabels, predictedSets = ext.identicalPrefixGroupBaseline(prr.testMeanings, prr.testLanguages, rdr.wordforms)
+	elif method == constants.IDENTICAL_LETTER:
+		predictedLabels, predictedSets = ext.identicalFirstLetterGroupBaseline(prr.testMeanings, prr.testLanguages, rdr.wordforms)
+
 	trueLabels = ext.extractGroupLabels(rdr.cognateSets, rdr.wordforms, prr.testMeanings, prr.testLanguages)
 	
 	# Evaluation
@@ -39,72 +56,87 @@ def groupDeduction():
 	V1scores = [lrn.computeV1(trueLabels[meaningIndex], predictedLabels[meaningIndex]) for meaningIndex in prr.testMeanings]
 	
 	# Reporting
-	output.reportGroup(V1scores, prr.testMeanings, rdr.meanings)
-	output.saveGroup("output/identical_letter_groups.txt", predictedSets)
+	output.reportGroup(constants.DEDUCERS[method], V1scores, prr.testMeanings, rdr.meanings)
+	output.saveGroup("output/Group " + constants.DEDUCERS[method] + ".txt", predictedSets)
 
 
-def firstPassLearning():
+def firstPassLearning(method):
 	# Feature extraction
 	ext = extractor.Extractor()
-#	ext.MEDBaseline(prr.examples, prr.labels)
-	ext.HK2011Baseline(prr.examples, prr.labels)
+	
+	if method == constants.MED:
+		ext.MEDBaseline(prr.examples, prr.labels)
+	elif method == constants.HK2011:
+		ext.HK2011Baseline(prr.examples, prr.labels)
 
 	# Learning
 	lrn = learner.Learner()
 	lrn.fitSVM(ext.trainExamples[:, : ext.testExamples.shape[1]], ext.trainLabels)
 
 	# Prediction, evaluation, reporting and output
-	prediction = learningPipeline(ext, lrn, "1st Pass", "output/HK2011First.txt")
+	predictedLabels, trueLabels = learningPipeline(ext, lrn, "1st Pass (" + constants.LEARNERS[method] + ")")
 	
-	return ext, lrn
+	return ext, lrn, predictedLabels, trueLabels
 
 
-def secondPassLearning(ext, lrn):
+def secondPassLearning(ext, lrn, method):
 	# Feature extraction
-	lrn.predictLanguageSimilarity(rdr.wordforms, ext.HK2011Extractor)
+	if method == constants.MED:
+		lrn.predictLanguageSimilarity(rdr.wordforms, ext.MEDExtractor)
+	elif method == constants.HK2011:
+		lrn.predictLanguageSimilarity(rdr.wordforms, ext.HK2011Extractor)
+	
 	ext.appendTestSimilarities(lrn.predictedSimilarities, prr.examples)
 	
 	# Learning
 	lrn.fitSVM(ext.trainExamples, ext.trainLabels)
 	
 	# Prediction, evaluation, reporting and output
-	prediction = learningPipeline(ext, lrn, "2nd Pass", "output/HK2011Second.txt")
+	predictedLabels, trueLabels = learningPipeline(ext, lrn, "2nd Pass (" + constants.LEARNERS[method] + ")")
 	
-	return ext, lrn
+	return ext, lrn, predictedLabels, trueLabels
 
 
-def clustering(ext, lrn):
+def clustering(ext, lrn, method):
 	# Feature Extraction
 	trueLabels = ext.extractGroupLabels(rdr.cognateSets, rdr.wordforms, prr.testMeanings, prr.testLanguages)
 
 	# Threshold
-#	threshold = lrn.computeDistanceThreshold(rdr.wordforms, prr.testMeanings, prr.testLanguages, ext.HK2011Extractor, trueLabels)
+#	if method == constants.MED:
+#		threshold = lrn.computeDistanceThreshold(rdr.wordforms, prr.testMeanings, prr.testLanguages, ext.MEDExtractor, trueLabels)
+#	elif method == constants.HK2011:
+#		threshold = lrn.computeDistanceThreshold(rdr.wordforms, prr.testMeanings, prr.testLanguages, ext.HK2011Extractor, trueLabels)
 #	print "Threshold:", threshold
 
 	# Learning
-	predictedLabels, predictedSets, clusterCounts, clusterDistances = lrn.cluster(rdr.wordforms, prr.testMeanings, prr.testLanguages, ext.HK2011Extractor)
+	if method == constants.MED:
+		predictedLabels, predictedSets, clusterCounts, clusterDistances = lrn.cluster(rdr.wordforms, prr.testMeanings, prr.testLanguages, ext.MEDExtractor)
+	elif method == constants.HK2011:
+		predictedLabels, predictedSets, clusterCounts, clusterDistances = lrn.cluster(rdr.wordforms, prr.testMeanings, prr.testLanguages, ext.HK2011Extractor)
 	
 	# Evaluation
 	V1scores = {meaningIndex: lrn.computeV1(trueLabels[meaningIndex], predictedLabels[meaningIndex]) for meaningIndex in prr.testMeanings}
 	
 	# Reporting
 	output.reportCluster(V1scores, clusterCounts, clusterDistances, rdr.meanings)
-	output.saveGroup("output/clustering.txt", predictedSets)
+	output.saveGroup("output/Clustering.txt", predictedSets)
 
 
-def learningPipeline(ext, lrn, stage, filename):
+def learningPipeline(ext, lrn, stage):
 	# Predicting
-	predictions = lrn.predictSVM(ext.testExamples)
+	predictedLabels = lrn.predictSVM(ext.testExamples)
 	
 	# Evaluation
-	accuracy = lrn.computeAccuracy(ext.testLabels, predictions)
-	report = lrn.evaluatePairwise(ext.testLabels, predictions)
+	accuracy = lrn.computeAccuracy(ext.testLabels, predictedLabels)
+	report = lrn.evaluatePairwise(ext.testLabels, predictedLabels)
 	
 	# Reporting
 	output.reportPairwiseLearning(stage, prr, accuracy, report)
 
 	# Output
-	output.savePredictions(filename, prr.examples[constants.TEST], ext.testExamples, predictions, ext.testLabels)
+	output.savePredictions("output/" + stage + ".txt", prr.examples[constants.TEST], ext.testExamples, predictedLabels, ext.testLabels)
+
+	return predictedLabels, ext.testLabels
 
 
 
@@ -119,22 +151,29 @@ prr = pairer.Pairer()
 prr.pairByMeaningRatio(rdr.cognateCCNs, rdr.dCognateCCNs, 0.9)
 
 
-# Deduction
-#pairwiseDeduction()
-#groupDeduction()
-
-# First Pass
-ext, lrn = firstPassLearning()
-#output.pickleLearning(1, ext, lrn)
+# Pairwise Deduction
+PDLabels1, trueLabels = pairwiseDeduction(constants.IDENTICAL_WORDS)
+PDLabels2, _ = pairwiseDeduction(constants.IDENTICAL_PREFIX)
+PDLabels3, _ = pairwiseDeduction(constants.IDENTICAL_LETTER)
 
 
-# Second Pass
-#ext, lrn = output.unpickleLearning(1, extractor.Extractor(), learner.Learner())
-ext, lrn = secondPassLearning(ext, lrn)
+# Group Deduction
+groupDeduction(constants.IDENTICAL_WORDS)
+groupDeduction(constants.IDENTICAL_PREFIX)
+groupDeduction(constants.IDENTICAL_LETTER)
 
 
-# Clustering
-clustering(ext, lrn)
+# Learning
+ext, lrn, FPLabels1, _ = firstPassLearning(constants.MED)
+ext, lrn, SPLabels1, _ = secondPassLearning(ext, lrn, constants.MED)
+clustering(ext, lrn, constants.MED)
+
+ext, lrn, FPLabels2, _ = firstPassLearning(constants.HK2011)
+ext, lrn, SPLabels2, _ = secondPassLearning(ext, lrn, constants.HK2011)
+clustering(ext, lrn, constants.HK2011)
+
+# Significance
+print lrn.computePairwiseSignificance(trueLabels, PDLabels1, PDLabels2)
 
 
 # Output
