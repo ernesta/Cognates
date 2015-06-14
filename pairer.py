@@ -68,11 +68,28 @@ class Pairer:
 	# (tRatio) of the meanings is used as training data, the rest of the data is
 	# used for testing.
 	def pairByMeaningRatio(self, cognates, dCognates, tRatio):
-		self.pair(cognates, dCognates)
-		self.combinePairs(tRatio)
-		
-		self.testLanguages = range(1, constants.LANGUAGE_COUNT + 1)
 		self.testMeanings = range(int(constants.MEANING_COUNT * tRatio) + 1, constants.MEANING_COUNT + 1)
+	
+		self.pairByMeaning(cognates, dCognates)
+	
+	
+	# The data is divided into training and test sets by meaning. The division
+	# is guided by the provided set of training meanings, with the remaining
+	# meanings used for testing purposes.
+	def pairBySpecificMeaning(self, cognates, dCognates, trainMeanings):
+		self.testMeanings = [i for i in range(1, constants.MEANING_COUNT + 1) if i not in trainMeanings]
+	
+		self.pairByMeaning(cognates, dCognates)
+	
+	
+	# The data is divided into training and test sets by meaning. A fraction of
+	# the meanings is used as training data, the rest of the data is used for
+	# testing.
+	def pairByMeaning(self, cognates, dCognates):
+		self.testLanguages = range(1, constants.LANGUAGE_COUNT + 1)
+		
+		self.pair(cognates, dCognates)
+		self.combinePairs()
 	
 	
 	# The data is divided into training and test sets by languages. tRatio
@@ -136,15 +153,12 @@ class Pairer:
 
 	# Combines positive and negative examples, and divides them into training
 	# and testing sets based on provided ratios.
-	def combinePairs(self, tRatio):
-		meaningCount = len(self.pExamples)
-		countTrain = int(meaningCount * tRatio)
-		
-		for i in range(1, meaningCount + 1):
-			if i <= countTrain:
-				self.extendDataset(constants.TRAIN, i)
-			else:
+	def combinePairs(self):
+		for i in range(1, constants.MEANING_COUNT + 1):
+			if i in self.testMeanings:
 				self.extendDataset(constants.TEST, i)
+			else:
+				self.extendDataset(constants.TRAIN, i)
 
 
 	# Combines positive and negative examples only for the training data.

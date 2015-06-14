@@ -162,13 +162,17 @@ rdr.read()
 
 
 # Pairing
+# Uses every tenth meaning for testing purposes. This ensures that the
+# experiments can be reproduced while avoiding biased sampling that might arise
+# when meanings starting with the same letter are selecting for testing.
+trainMeanings = [i for i in range(1, constants.MEANING_COUNT) if i % 10 != 0]
+
 prr = pairer.Pairer()
-prr.pairByMeaningRatio(rdr.cognateCCNs, rdr.dCognateCCNs, constants.TRAIN_MEANINGS / constants.MEANING_COUNT)
+prr.pairBySpecificMeaning(rdr.cognateCCNs, rdr.dCognateCCNs, trainMeanings)
 
 
 # Pairwise Deduction
 PDLabels1, trueLabels = pairwiseDeduction(constants.IDENTICAL_WORDS)
-PDLabels2, _ = pairwiseDeduction(constants.IDENTICAL_PREFIX)
 
 
 # Group Deduction
@@ -182,9 +186,8 @@ clustering(ext, lrn, constants.SVM, constants.MED)
 
 
 # Significance
-lrn = learner.Learner()
-print "\nSignificance: {0} vs. {1}".format(constants.DEDUCERS[constants.IDENTICAL_WORDS], constants.DEDUCERS[constants.IDENTICAL_PREFIX])
-print constants.SIGNIFICANCE.format(lrn.computeMcNemarSignificance(trueLabels, PDLabels1, PDLabels2))
+#lrn = learner.Learner()
+#print constants.SIGNIFICANCE.format(lrn.computeMcNemarSignificance(trueLabels, PDLabels1, PDLabels2))
 
 
 # Output
