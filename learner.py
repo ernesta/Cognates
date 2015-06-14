@@ -1,4 +1,5 @@
 from __future__ import division
+import math
 import random
 
 from sklearn import cluster
@@ -222,11 +223,42 @@ class Learner:
 		return metrics.classification_report(truth, predictions, target_names = constants.TARGETS)
 	
 	
+	# Checks if a difference of performance between two clasifiers is
+	# significant using the McNemar's test. Since we are interested in F1,
+	# rather than accuracy significance, only predictions that pertain to the
+	# classification of cognates is considered. The results are significant at
+	# p = 0.05 if chi^2 > 3.841, and at p = 0.005 if chi^2 > 7.879.
+	def computeMcNemarSignificance(self, truth, predictions1, predictions2):
+		condition = (truth == 1)
+		truth = numpy.extract(condition, truth)
+		predictions1 = numpy.extract(condition, predictions1)
+		predictions2 = numpy.extract(condition, predictions2)
+	
+		evals1 = (predictions1 == truth)
+		evals2 = (predictions2 == truth)
+		
+		# Misclassified by the first model only: c01.
+		# Misclassified by the second model only: c10.
+		c01, c10 = 0, 0
+	
+		for i, eval1 in enumerate(evals1):
+			eval2 = evals2[i]
+			if eval1 == 0 and eval2 == 1:
+				c01 += 1
+			if eval1 == 1 and eval2 == 0:
+				c10 += 1
+		
+		if c01 + c10 < 20:
+			print "Unreliable conclusion:", c01, c10
+		
+		return math.pow(abs(c01 - c10) - 1, 2) / (c01 + c10)
+	
+	
 	# Computes the probability that predictions of the two models are truly
 	# different, and thus the resulting F1 scores indeed indicate significant
 	# difference in the performance of the two models. This here uses a Monte
 	# Carlo approximation of a paired permutation significance test.
-	def computePairwiseSignificance(self, truth, predictions1, predictions2):
+	def computePermutationSignificance(self, truth, predictions1, predictions2):
 		statistic1 = self.computeF1(truth, predictions1)
 		statistic2 = self.computeF1(truth, predictions2)
 		

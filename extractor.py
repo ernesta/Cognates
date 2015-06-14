@@ -484,4 +484,6 @@ class Extractor:
 	# Formats the output.
 	def formatExamples(self):
 		self.trainExamples = numpy.array(self.trainExamples)
+		self.trainLabels = numpy.array(self.trainLabels)
 		self.testExamples = numpy.array(self.testExamples)
+		self.testLabels = numpy.array(self.testLabels)

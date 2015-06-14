@@ -167,23 +167,24 @@ prr.pairByMeaningRatio(rdr.cognateCCNs, rdr.dCognateCCNs, constants.TRAIN_MEANIN
 
 
 # Pairwise Deduction
-#PDLabels1, trueLabels = pairwiseDeduction(constants.IDENTICAL_WORDS)
+PDLabels1, trueLabels = pairwiseDeduction(constants.IDENTICAL_WORDS)
+PDLabels2, _ = pairwiseDeduction(constants.IDENTICAL_PREFIX)
 
 
 # Group Deduction
-#groupDeduction(constants.IDENTICAL_WORDS)
+groupDeduction(constants.IDENTICAL_WORDS)
 
 
 # Learning
-ext, lrn, FPLabels1, _ = firstPassLearning(constants.LR, constants.MED)
-#ext, lrn, SPLabels1, _ = secondPassLearning(ext, lrn, constants.LR, constants.MED)
-clustering(ext, lrn, constants.LR, constants.MED)
+ext, lrn, FPLabels1, _ = firstPassLearning(constants.SVM, constants.MED)
+ext, lrn, SPLabels1, _ = secondPassLearning(ext, lrn, constants.SVM, constants.MED)
+clustering(ext, lrn, constants.SVM, constants.MED)
 
 
 # Significance
-#lrn = learner.Learner()
-#print "\nSignificance: {0} vs. {1}".format(constants.DEDUCERS[constants.IDENTICAL_WORDS], constants.DEDUCERS[constants.IDENTICAL_PREFIX])
-#print constants.P_VALUE.format(lrn.computePairwiseSignificance(trueLabels, PDLabels1, PDLabels2))
+lrn = learner.Learner()
+print "\nSignificance: {0} vs. {1}".format(constants.DEDUCERS[constants.IDENTICAL_WORDS], constants.DEDUCERS[constants.IDENTICAL_PREFIX])
+print constants.SIGNIFICANCE.format(lrn.computeMcNemarSignificance(trueLabels, PDLabels1, PDLabels2))
 
 
 # Output
