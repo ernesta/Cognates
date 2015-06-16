@@ -64,57 +64,28 @@ class Pairer:
 	
 
 	### Pairing ###
-	# The data is divided into training and test sets by meaning. A fraction
-	# (tRatio) of the meanings is used as training data, the rest of the data is
-	# used for testing.
-	def pairByMeaningRatio(self, cognates, dCognates, tRatio):
-		self.testMeanings = range(int(constants.MEANING_COUNT * tRatio) + 1, constants.MEANING_COUNT + 1)
-	
-		self.pairByMeaning(cognates, dCognates)
-	
-	
-	# The data is divided into training and test sets by meaning. The division
-	# is guided by the provided set of training meanings, with the remaining
-	# meanings used for testing purposes.
-	def pairBySpecificMeaning(self, cognates, dCognates, trainMeanings):
-		self.testMeanings = [i for i in range(1, constants.MEANING_COUNT + 1) if i not in trainMeanings]
-	
-		self.pairByMeaning(cognates, dCognates)
-	
-	
-	# The data is divided into training and test sets by meaning. A fraction of
-	# the meanings is used as training data, the rest of the data is used for
-	# testing.
-	def pairByMeaning(self, cognates, dCognates):
+	# The data is divided into training and test sets by meaning as specified by
+	# the user in trainMeanings and testMeanings.
+	def pairBySpecificMeaning(self, cognates, dCognates, trainMeanings, testMeanings):
+		self.testMeanings = testMeanings[:]
 		self.testLanguages = range(1, constants.LANGUAGE_COUNT + 1)
 		
 		self.pair(cognates, dCognates)
 		self.combinePairs()
 	
 	
-	# The data is divided into training and test sets by languages. tRatio
-	# decides the fraction of all languages to be used as training data. The
-	# rest of the data is used for testing purposes.
-	def pairByLanguageRatio(self, cognates, dCognates, tRatio):
-		countTrain = int(constants.LANGUAGE_COUNT * tRatio)
-		trainLanguages = range(1, countTrain + 1)
-		self.pairByLanguage(cognates, dCognates, trainLanguages)
-	
-		self.testLanguages = range(countTrain + 1, constants.LANGUAGE_COUNT + 1)
-		self.testMeanings = range(1, constants.MEANING_COUNT + 1)
-	
-	
 	# The data is assigned to the training set only for languages specified in
 	# the trainLanguages list. The remaining data is used for testing.
-	def pairBySpecificLanguage(self, cognates, dCognates, trainLanguages):
-		self.pairByLanguage(cognates, dCognates, trainLanguages)
-	
-		self.testLanguages = [i for i in range(1, constants.LANGUAGE_COUNT + 1) if i not in trainLanguages]
+	def pairBySpecificLanguage(self, cognates, dCognates, trainLanguages, testLanguages):
 		self.testMeanings = range(1, constants.MEANING_COUNT + 1)
+		self.testLanguages = testLanguages[:]
+		
+		self.pairByLanguage(cognates, dCognates, trainLanguages, testLanguages)
+	
 	
 	
 	# Splits the data into training and testing sets by language.
-	def pairByLanguage(self, cognates, dCognates, trainLanguages):
+	def pairByLanguage(self, cognates, dCognates, trainLanguages, testLanguages):
 		trainCognates = {}
 		testCognates = {}
 		
@@ -129,7 +100,7 @@ class Pairer:
 				for languageIndex, form in forms.iteritems():
 					if languageIndex in trainLanguages:
 						trainCognates[meaningIndex][CCN][languageIndex] = form
-					else:
+					elif languageIndex in testLanguages:
 						testCognates[meaningIndex][CCN][languageIndex] = form
 
 		self.pair(trainCognates, dCognates)
