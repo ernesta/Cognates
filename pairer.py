@@ -71,7 +71,7 @@ class Pairer:
 		self.testLanguages = range(1, constants.LANGUAGE_COUNT + 1)
 		
 		self.pair(cognates, dCognates)
-		self.combinePairs()
+		self.combinePairs(trainMeanings)
 	
 	
 	# The data is assigned to the training set only for languages specified in
@@ -124,11 +124,11 @@ class Pairer:
 
 	# Combines positive and negative examples, and divides them into training
 	# and testing sets based on provided ratios.
-	def combinePairs(self):
+	def combinePairs(self, trainMeanings):
 		for i in range(1, constants.MEANING_COUNT + 1):
 			if i in self.testMeanings:
 				self.extendDataset(constants.TEST, i)
-			else:
+			elif i in trainMeanings:
 				self.extendDataset(constants.TRAIN, i)
 
 

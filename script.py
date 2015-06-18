@@ -32,7 +32,7 @@ def pairwiseDeduction(measure):
 	
 	# Reporting
 	output.reportPairwiseDeduction(constants.DEDUCERS[measure], prr, accuracy, report)
-	
+
 	# Output
 	filename = "output/Pairwise " + constants.DEDUCERS[measure] + ".txt"
 	output.savePredictions(filename, prr.examples[constants.TEST], ext.testExamples, predictedLabels, ext.testLabels)
@@ -56,7 +56,7 @@ def groupDeduction(measure):
 	# Evaluation
 	lrn = learner.Learner()
 	V1scores = [lrn.computeV1(trueLabels[meaningIndex], predictedLabels[meaningIndex]) for meaningIndex in prr.testMeanings]
-	
+
 	# Reporting
 	output.reportGroup(constants.DEDUCERS[measure], V1scores, prr.testMeanings, rdr.meanings)
 	output.saveGroup("output/Group " + constants.DEDUCERS[measure] + ".txt", predictedSets)
@@ -165,7 +165,8 @@ rdr.read()
 # Uses every tenth meaning for testing purposes. This ensures that the
 # experiments can be reproduced while avoiding biased sampling that might arise
 # when meanings starting with the same letter are selecting for testing.
-trainMeanings = [i for i in range(1, constants.MEANING_COUNT + 1) if i % 10 != 0]
+trainMeanings = [i for i in range(1, constants.MEANING_COUNT + 1) if (i % 10 != 0 and i % 10 != 5)]
+devMeanings = [i for i in range(1, constants.MEANING_COUNT + 1) if i % 10 == 5]
 testMeanings = [i for i in range(1, constants.MEANING_COUNT + 1) if i % 10 == 0]
 
 prr = pairer.Pairer()

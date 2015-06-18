@@ -206,9 +206,29 @@ class Learner:
 		return metrics.accuracy_score(truth, predictions)
 	
 	
+	# Computes precision.
+	def computeRecall(self, truth, predictions):
+		return metrics.recall_score(truth, predictions)
+	
+	
+	# Computes recall.
+	def computePrecision(self, truth, predictions):
+		return metrics.precision_score(truth, predictions)
+
+
 	# Computes F1 of the positive class by comparing predictions to the truth.
 	def computeF1(self, truth, predictions):
 		return metrics.f1_score(truth, predictions)
+	
+	
+	# Computes homogeneity of a clustering.
+	def computeHomogeneity(self, truth, predictions):
+		return metrics.homogeneity_score(truth, predictions)
+	
+	
+	# Computes completeness of a clustering.
+	def computeCompleteness(self, truth, predictions):
+		return metrics.completeness_score(truth, predictions)
 	
 	
 	# Computes the V1 score of the predicted grouping of wordforms for a meaning

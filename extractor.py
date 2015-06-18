@@ -1,4 +1,5 @@
 from __future__ import division
+from collections import OrderedDict
 import math
 import os
 
@@ -88,7 +89,7 @@ class Extractor:
 	# cognateness decision is made based on the test method provided. The test
 	# dataset is used.
 	def groupBaseline(self, test, testMeanings, testLanguages, wordforms):
-		clusters = {}
+		clusters = OrderedDict()
 		
 		for meaningIndex in testMeanings:
 			clusterIndices = {}
@@ -228,7 +229,7 @@ class Extractor:
 	# Returns, for each meaning, a list of language-sorted cognate group label
 	# indices for the test dataset.
 	def extractGroupLabels(self, cognateSets, wordforms, testMeanings, testLanguages):
-		groupLabels = {}
+		groupLabels = OrderedDict()
 		
 		for meaningIndex in testMeanings:
 			labels = [-1] * len(wordforms[meaningIndex])

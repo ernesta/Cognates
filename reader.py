@@ -130,8 +130,8 @@ class Reader:
 		if self.currentLanguageIndex <= constants.LANGUAGE_COUNT:
 			form = self.parseForms(line)
 		
-			# Adds the form to the cognateCCNs dictionary. Also adds the form to its
-			# appropriate cognate group based on its CCN.
+			# Adds the form to the cognateCCNs dictionary. Also adds the form to
+			# its appropriate cognate group based on its CCN.
 			if form:
 				if self.currentCCN not in self.cognateCCNs[self.currentMeaningIndex]:
 					self.cognateCCNs[self.currentMeaningIndex][self.currentCCN] = {}
@@ -171,8 +171,7 @@ class Reader:
 	
 		# If there is more than one form, it becomes impossible to distinguish
 		# between cognates and non-cognates for the particular language and
-		# meaning. Thus, all entries with multiple forms are ignored (out of
-		# 19,000 entries, 16,217 only contain one form).
+		# meaning. Thus, all entries with multiple forms are ignored.
 		return forms[0] if len(forms) == 1 else None
 	
 	
