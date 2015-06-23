@@ -64,7 +64,7 @@ class Learner:
 		
 		for meaningIndex in testMeanings:
 			meaningLanguages = self.collectMeaningLanguages(testLanguages, wordforms[meaningIndex])
-			distances = self.computeDistances(model, meaningLanguages, wordforms[meaningIndex], extractor)
+			distances = self.computeDistances(model, meaningLanguages, testLanguages, wordforms[meaningIndex], extractor)
 			
 			for n in range(constants.CLUSTER_MIN, constants.CLUSTER_MAX + 1):
 				# Clusters the data into n groups.
@@ -95,7 +95,7 @@ class Learner:
 			minDistances = []
 			
 			meaningLanguages = self.collectMeaningLanguages(testLanguages, wordforms[meaningIndex])
-			distances = self.computeDistances(model, meaningLanguages, wordforms[meaningIndex], extractor)
+			distances = self.computeDistances(model, meaningLanguages, testLanguages, wordforms[meaningIndex], extractor)
 	
 			for n in range(constants.CLUSTER_MIN, constants.CLUSTER_MAX + 1):
 				clustering = cluster.AgglomerativeClustering(n_clusters = n, affinity = "precomputed", linkage = "average")
@@ -129,7 +129,7 @@ class Learner:
 	
 	# Generates a matrix of all possible languages, with cell values set to the
 	# distance between every two word pairs for the given meaning.
-	def computeDistances(self, model, meaningLanguages, meaningWordforms, extractor):
+	def computeDistances(self, model, meaningLanguages, testLanguages, meaningWordforms, extractor):
 		languageCount = len(meaningLanguages)
 		
 		distances = [[0] * languageCount for i in range(languageCount)]
@@ -146,9 +146,9 @@ class Learner:
 					
 				if not form2:
 					continue
-			
-				example = extractor(form1, form2, self.predictedSimilarities[language1][language2]) if self.predictedSimilarities else extractor(form1, form2)
 				
+				example = extractor(form1, form2, testLanguages, language1, language2)
+
 				if model == constants.SVM:
 					distances[i][j] = 1 - self.predictSVM(example)[0]
 				elif model == constants.LR:
@@ -315,8 +315,9 @@ class Learner:
 			nLabels2.append(choice[1])
 
 		return nLabels1, nLabels2
-
-
+	
+	
+	
 	### Predicted Language Similarity ###
 	# Uses the learner to generate cognatenes predictions for every possible
 	# word pair for every meaning. Uses these predictions to compute predicted

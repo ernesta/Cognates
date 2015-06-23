@@ -56,6 +56,7 @@ class Pairer:
 		
 		self.testMeanings = []
 		self.testLanguages = []
+		self.trainLanguages = []
 		
 		self.meaningRange = {
 			constants.TRAIN: {key: 0 for key in range(constants.MEANING_COUNT + 1)},
@@ -69,6 +70,7 @@ class Pairer:
 	def pairBySpecificMeaning(self, cognates, dCognates, trainMeanings, testMeanings):
 		self.testMeanings = testMeanings[:]
 		self.testLanguages = range(1, constants.LANGUAGE_COUNT + 1)
+		self.trainLanguages = range(1, constants.LANGUAGE_COUNT + 1)
 		
 		self.pair(cognates, dCognates)
 		self.combinePairs(trainMeanings)
@@ -79,6 +81,7 @@ class Pairer:
 	def pairBySpecificLanguage(self, cognates, dCognates, trainLanguages, testLanguages):
 		self.testMeanings = range(1, constants.MEANING_COUNT + 1)
 		self.testLanguages = testLanguages[:]
+		self.trainLanguages = trainLanguages[:]
 		
 		self.pairByLanguage(cognates, dCognates, trainLanguages, testLanguages)
 	

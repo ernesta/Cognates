@@ -32,10 +32,7 @@ def pairwiseDeduction(measure):
 	
 	# Reporting
 	output.reportPairwiseDeduction(constants.DEDUCERS[measure], prr, accuracy, report)
-
-	# Output
-	filename = "output/Pairwise " + constants.DEDUCERS[measure] + ".txt"
-	output.savePredictions(filename, prr.examples[constants.TEST], ext.testExamples, predictedLabels, ext.testLabels)
+	output.savePredictions("output/Pairwise " + constants.DEDUCERS[measure] + ".txt", prr.examples[constants.TEST], ext.testExamples, predictedLabels, ext.testLabels)
 
 	return predictedLabels, ext.testLabels
 
@@ -62,69 +59,71 @@ def groupDeduction(measure):
 	output.saveGroup("output/Group " + constants.DEDUCERS[measure] + ".txt", predictedSets)
 
 
-def firstPassLearning(model, measure):
+def HK2011Pairwise():
+	# 1st Pass
 	# Feature extraction
 	ext = extractor.Extractor()
-	
-	if measure == constants.MED:
-		ext.MEDBaseline(prr.examples, prr.labels)
-	elif measure == constants.HK2011:
-		ext.HK2011Baseline(prr.examples, prr.labels)
+	ext.HK2011Baseline(prr.examples, prr.labels)
+
+#	ext.appendLanguageFeatures(prr.examples, constants.TRAIN, prr.trainLanguages)
+#	ext.appendLanguageFeatures(prr.examples, constants.TEST, prr.testLanguages)
 
 	# Learning
 	lrn = learner.Learner()
-	stage = "1st Pass (" + constants.MODELS[model] + ", " + constants.MEASURES[measure] + ")"
-
-	if model == constants.SVM:
-		lrn.fitSVM(ext.trainExamples[:, : ext.testExamples.shape[1]], ext.trainLabels)
-	elif model == constants.LR:
-		lrn.fitLinearRegression(ext.trainExamples[:, : ext.testExamples.shape[1]], ext.trainLabels)
-
-	# Prediction, evaluation, reporting and output
-	predictedLabels, trueLabels = learningPipeline(model, ext, lrn, stage)
+	lrn.fitSVM(ext.trainExamples, ext.trainLabels)
 	
-	return ext, lrn, predictedLabels, trueLabels
-
-
-def secondPassLearning(ext, lrn, model, measure):
+	# Prediction
+	predictions1 = lrn.predictSVM(ext.testExamples)
+	
+	# Evaluation
+	accuracy = lrn.computeAccuracy(ext.testLabels, predictions1)
+	report = lrn.evaluatePairwise(ext.testLabels, predictions1)
+	
+	# Reporting
+	stage = "HK2011 1st Pass"
+	output.reportPairwiseLearning(stage, prr, accuracy, report)
+	output.savePredictions("output/" + stage + ".txt", prr.examples[constants.TEST], ext.testExamples, predictions1, ext.testLabels)
+	
+	
+	# 2nd Pass
 	# Feature extraction
-	if measure == constants.MED:
-		lrn.predictLanguageSimilarity(model, rdr.wordforms, ext.MEDExtractor)
-	elif measure == constants.HK2011:
-		lrn.predictLanguageSimilarity(model, rdr.wordforms, ext.HK2011Extractor)
-	
-	ext.appendTestSimilarities(lrn.predictedSimilarities, prr.examples)
+	ext.appendLanguageFeatures(prr.examples, constants.TEST, prr.testLanguages)
 	
 	# Learning
-	stage = "2nd Pass (" + constants.MODELS[model] + ", " + constants.MEASURES[measure] + ")"
-
-	if model == constants.SVM:
-		lrn.fitSVM(ext.trainExamples, ext.trainLabels)
-	elif model == constants.LR:
-		lrn.fitLinearRegression(ext.trainExamples, ext.trainLabels)
+	lrn = learner.Learner()
+	lrn.fitSVM(ext.testExamples, predictions1)
 	
-	# Prediction, evaluation, reporting and output
-	predictedLabels, trueLabels = learningPipeline(model, ext, lrn, stage)
+	# Prediction
+	predictions2 = lrn.predictSVM(ext.testExamples)
 	
-	return ext, lrn, predictedLabels, trueLabels
+	# Evaluation
+	accuracy = lrn.computeAccuracy(ext.testLabels, predictions2)
+	report = lrn.evaluatePairwise(ext.testLabels, predictions2)
+	
+	# Reporting
+	stage = "HK2011 2nd Pass"
+	output.reportPairwiseLearning(stage, prr, accuracy, report)
+	output.savePredictions("output/" + stage + ".txt", prr.examples[constants.TEST], ext.testExamples, predictions2, ext.testLabels)
+	
+	
+	# Significance
+	print constants.SIGNIFICANCE.format(lrn.computeMcNemarSignificance(ext.testLabels, predictions1, predictions2))
 
 
-def clustering(ext, lrn, model, measure):
+	return ext, lrn
+
+
+
+def HK2011Clustering(ext, lrn):
 	# Feature extraction
 	trueLabels = ext.extractGroupLabels(rdr.cognateSets, rdr.wordforms, prr.testMeanings, prr.testLanguages)
 
 	# Threshold
-#	if measure == constants.MED:
-#		threshold = lrn.computeDistanceThreshold(rdr.wordforms, prr.testMeanings, prr.testLanguages, ext.MEDExtractor, trueLabels)
-#	elif measure == constants.HK2011:
-#		threshold = lrn.computeDistanceThreshold(rdr.wordforms, prr.testMeanings, prr.testLanguages, ext.HK2011Extractor, trueLabels)
-#	print "Threshold:", threshold
+	threshold = lrn.computeDistanceThreshold(constants.SVM, rdr.wordforms, prr.testMeanings, prr.testLanguages, ext.HK2011ExtractorFull, trueLabels)
+	print "Threshold:", threshold
 
 	# Learning
-	if measure == constants.MED:
-		predictedLabels, predictedSets, clusterCounts, clusterDistances = lrn.cluster(model, rdr.wordforms, prr.testMeanings, prr.testLanguages, ext.MEDExtractor)
-	elif measure == constants.HK2011:
-		predictedLabels, predictedSets, clusterCounts, clusterDistances = lrn.cluster(model, rdr.wordforms, prr.testMeanings, prr.testLanguages, ext.HK2011Extractor)
+	predictedLabels, predictedSets, clusterCounts, clusterDistances = lrn.cluster(constants.SVM, rdr.wordforms, prr.testMeanings, prr.testLanguages, ext.HK2011ExtractorFull)
 	
 	# Evaluation
 	V1scores = {meaningIndex: lrn.computeV1(trueLabels[meaningIndex], predictedLabels[meaningIndex]) for meaningIndex in prr.testMeanings}
@@ -134,61 +133,22 @@ def clustering(ext, lrn, model, measure):
 	output.saveGroup("output/Clustering.txt", predictedSets)
 
 
-def learningPipeline(model, ext, lrn, stage):
-	# Predicting
-	if model == constants.SVM:
-		predictedLabels = lrn.predictSVM(ext.testExamples)
-	elif model == constants.LR:
-		predictedLabels = lrn.predictLinearRegression(ext.testExamples)
-	
-	# Evaluation
-	accuracy = lrn.computeAccuracy(ext.testLabels, predictedLabels)
-	report = lrn.evaluatePairwise(ext.testLabels, predictedLabels)
-	
-	# Reporting
-	output.reportPairwiseLearning(stage, prr, accuracy, report)
-
-	# Output
-	output.savePredictions("output/" + stage + ".txt", prr.examples[constants.TEST], ext.testExamples, predictedLabels, ext.testLabels)
-
-	return predictedLabels, ext.testLabels
-
-
 
 # FLOW
 # Reading
 rdr = reader.Reader(constants.IN)
 rdr.read()
 
-
-# Pairing
-# Uses every tenth meaning for testing purposes. This ensures that the
-# experiments can be reproduced while avoiding biased sampling that might arise
-# when meanings starting with the same letter are selecting for testing.
 trainMeanings = [i for i in range(1, constants.MEANING_COUNT + 1) if (i % 10 != 0 and i % 10 != 5)]
 devMeanings = [i for i in range(1, constants.MEANING_COUNT + 1) if i % 10 == 5]
 testMeanings = [i for i in range(1, constants.MEANING_COUNT + 1) if i % 10 == 0]
 
+
+# Pairing
 prr = pairer.Pairer()
-prr.pairBySpecificMeaning(rdr.cognateCCNs, rdr.dCognateCCNs, trainMeanings, testMeanings)
-
-
-# Pairwise Deduction
-PDLabels1, trueLabels = pairwiseDeduction(constants.IDENTICAL_WORDS)
-
-
-# Group Deduction
-groupDeduction(constants.IDENTICAL_WORDS)
+prr.pairBySpecificMeaning(rdr.cognateCCNs, rdr.dCognateCCNs, trainMeanings, devMeanings)
 
 
 # Learning
-ext, lrn, FPLabels1, _ = firstPassLearning(constants.SVM, constants.MED)
-clustering(ext, lrn, constants.SVM, constants.MED)
-
-
-# Significance
-print constants.SIGNIFICANCE.format(lrn.computeMcNemarSignificance(trueLabels, PDLabels1, FPLabels1))
-
-
-# Output
-#output.saveGroup("output/true_groups.txt", rdr.cognateSets)
+ext, lrn = HK2011Pairwise()
+HK2011Clustering(ext, lrn)

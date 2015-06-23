@@ -18,7 +18,6 @@ class Extractor:
 		self.identicalWordsMeasure = [self.identicalWords]
 		self.identicalFirstLetterMeasure = [self.identicalFirstLetter]
 		self.identicalPrefixMeasure = [self.identicalPrefix]
-		self.MEDMeasure = [self.basicMED]
 		self.HK2011Measures = [self.basicMED, self.LCPLength, self.commonBigramNumber, self.longerWordLen, self.shorterWordLen, self.wordLenDifference]
 		
 		self.trainExamples = []
@@ -44,13 +43,6 @@ class Extractor:
 		self.batchCompute(allExamples, allLabels, self.identicalFirstLetterMeasure)
 	
 	
-	# Minimum edit distance baseline (assumes costs of insertion, deletion and
-	# substitution are all 1).
-	def MEDBaseline(self, allExamples, allLabels):
-		self.batchCompute(allExamples, allLabels, self.MEDMeasure)
-		self.addLanguageSimilarity(allExamples)
-	
-	
 	### Group-based Baselines ###
 	# A reproduction of Hauer & Kondrak (2011). Since data has been preprocessed
 	# slightly differently in this project, and in some cases Hauer & Kondrak
@@ -65,8 +57,7 @@ class Extractor:
 		# Length of the second word (here length of the longer word)
 		# Absolute length difference between the two words
 		self.batchCompute(allExamples, allLabels, self.HK2011Measures)
-		self.addLanguageSimilarity(allExamples)
-	
+
 	
 	# Arranges wordforms into groups of identical items.
 	def identicalWordsGroupBaseline(self, testMeanings, testLanguages, wordforms):
@@ -127,13 +118,14 @@ class Extractor:
 	### Extractors ###
 	# Extracts a set of features (all used in Hauer & Kondrak) from a pair of
 	# words.
-	def HK2011Extractor(self, form1, form2, langSimilarity = None):
-		return self.compute(form1, form2, self.HK2011Measures, langSimilarity)
+	def HK2011Extractor(self, form1, form2, languages = None, language1 = None, language2 = None):
+		return self.compute(self.HK2011Measures, form1, form2)
 	
 	
-	# Extracts the minumum edit distance feature from a pair of words.
-	def MEDExtractor(self, form1, form2, langSimilarity = None):
-		return self.compute(form1, form2, self.MEDMeasure, langSimilarity)
+	# Extracts a set of features (all used in Hauer & Kondrak) from a pair of
+	# words. Includes language pair features,
+	def HK2011ExtractorFull(self, form1, form2, languages, language1, language2):
+		return self.compute(self.HK2011Measures, form1, form2, languages, language1, language2)
 	
 	
 	### Language Similarity ###
@@ -150,11 +142,28 @@ class Extractor:
 	
 	# Measures language similarity as a fraction of positive examples to all
 	# examples for each language pair in the training set.
-	def addLanguageSimilarity(self, allExamples):
+	def appendTrainSimilarities(self, allExamples):
 		decisionCounts = self.countTrainDecisions(allExamples)
 		decisionSimilarities = self.computeTrainSimilarity(allExamples, decisionCounts)
 		
 		self.trainExamples = numpy.column_stack((self.trainExamples, numpy.array(decisionSimilarities)))
+	
+	
+	# For each example, adds a set of binary language pair features. All
+	# features are 0 except for a single feature that corresponds to the
+	# example's language pair. That feature is set to 1.
+	def appendLanguageFeatures(self, allExamples, purpose, languages):
+		featureCount = self.countLanguageFeatures(languages)
+		languageFeatures = [[0.0] * featureCount for i in range(len(allExamples[purpose]))]
+		
+		for i, (form1, form2, language1, language2) in enumerate(allExamples[purpose]):
+			index1, index2 = self.getLanguageIndices(languages, language1, language2)
+			languageFeatures[i][self.computeIndex(len(languages), index1, index2)] = 1.0
+		
+		if purpose == constants.TRAIN:
+			self.trainExamples = numpy.column_stack((self.trainExamples, numpy.array(languageFeatures)))
+		else:
+			self.testExamples = numpy.column_stack((self.testExamples, numpy.array(languageFeatures)))
 	
 	
 	# Uses the training dataset to count positive and all cognateness decisions
@@ -185,15 +194,50 @@ class Extractor:
 			decisionSimilarities.append(decisionCounts[language1][language2][1] / decisionCounts[language1][language2][0])
 
 		return decisionSimilarities
+	
+	
+	# Computes the index of a language pair in a binary language pair feature
+	# set. If count is the number of languages, index1 is the index of the first
+	# language in the languages list, and index2 is the index of the second
+	# language in the languages list, then the index of the pair is computed as
+	# follows:
+	def computeIndex(self, count, index1, index2):
+		return int((count * (count - 1) / 2) - ((count - index1) * (count - index1 - 1) / 2) + (index2 - index1) - 1)
+	
+	
+	# Counts possible language pairs.
+	def countLanguageFeatures(self, languages):
+		return int(len(languages) * len(languages) / 2)
+	
+	
+	# Retrieves indices of the two languages, returns them sorted in an
+	# ascending order.
+	def getLanguageIndices(self, languages, language1, language2):
+		index1 = languages.index(language1)
+		index2 = languages.index(language2)
+		
+		if index1 < index2:
+			return index1, index2
+		else:
+			return index2, index1
 
 
 	### Feature Extraction ###
 	# Uses the list of word similarity measures to generate a single example from
 	# two wordforms.
-	def compute(self, form1, form2, tests, langSimilarity):
+	def compute(self, tests, form1, form2, languages = None, language1 = None, language2 = None, langSimilarity = None):
 		example = [test(form1, form2) for test in tests]
 		
-		if langSimilarity is not None:
+		if languages is not None:
+			featureCount = self.countLanguageFeatures(languages)
+			languageFeatures = [0.0] * featureCount
+			
+			index1, index2 = self.getLanguageIndices(languages, language1, language2)
+			languageFeatures[self.computeIndex(len(languages), index1, index2)] = 1.0
+			
+			example.extend(languageFeatures)
+		
+		elif langSimilarity is not None:
 			example.append(langSimilarity)
 		
 		return numpy.array(example)
