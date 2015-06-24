@@ -15,12 +15,13 @@ def reportPairwiseDeduction(stage, prr, accuracy, report):
 
 
 # Prints to terminal key pairwise learning results.
-def reportPairwiseLearning(stage, prr, accuracy, report):
+def reportPairwiseLearning(stage, prr, accuracy, F1, report):
 	print "\n", "### Pairwise Learning (" + stage + ") ###"
 	print constants.REPORTING.format("Negative examples:", (1 - prr.positiveCounts[constants.ALL] / prr.allCounts[constants.ALL]))
 	print constants.REPORTING.format("Negative training examples:", (1 - prr.positiveCounts[constants.TRAIN] / prr.allCounts[constants.TRAIN]))
 	print constants.REPORTING.format("Negative test examples:", (1 - prr.positiveCounts[constants.TEST] / prr.allCounts[constants.TEST]))
 	print "\n", constants.REPORTING.format("Accuracy:", accuracy)
+	print constants.REPORTING.format("F1:", F1)
 	print "\n", report
 
 

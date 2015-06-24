@@ -164,7 +164,7 @@ class Extractor:
 			self.trainExamples = numpy.column_stack((self.trainExamples, numpy.array(languageFeatures)))
 		else:
 			self.testExamples = numpy.column_stack((self.testExamples, numpy.array(languageFeatures)))
-	
+
 	
 	# Uses the training dataset to count positive and all cognateness decisions
 	# for language pairs present in the data.
@@ -207,7 +207,7 @@ class Extractor:
 	
 	# Counts possible language pairs.
 	def countLanguageFeatures(self, languages):
-		return int(len(languages) * len(languages) / 2)
+		return int(len(languages) * (len(languages) - 1) / 2)
 	
 	
 	# Retrieves indices of the two languages, returns them sorted in an

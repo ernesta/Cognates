@@ -70,6 +70,7 @@ def HK2011Pairwise():
 
 	# Learning
 	lrn = learner.Learner()
+	lrn.initSVM(0.1)
 	lrn.fitSVM(ext.trainExamples, ext.trainLabels)
 	
 	# Prediction
@@ -77,20 +78,22 @@ def HK2011Pairwise():
 	
 	# Evaluation
 	accuracy = lrn.computeAccuracy(ext.testLabels, predictions1)
+	F1 = lrn.computeF1(ext.testLabels, predictions1)
 	report = lrn.evaluatePairwise(ext.testLabels, predictions1)
 	
 	# Reporting
 	stage = "HK2011 1st Pass"
-	output.reportPairwiseLearning(stage, prr, accuracy, report)
+	output.reportPairwiseLearning(stage, prr, accuracy, F1, report)
 	output.savePredictions("output/" + stage + ".txt", prr.examples[constants.TEST], ext.testExamples, predictions1, ext.testLabels)
 	
-	
+
 	# 2nd Pass
 	# Feature extraction
 	ext.appendLanguageFeatures(prr.examples, constants.TEST, prr.testLanguages)
-	
+
 	# Learning
 	lrn = learner.Learner()
+	lrn.initSVM(0.01)
 	lrn.fitSVM(ext.testExamples, predictions1)
 	
 	# Prediction
@@ -98,13 +101,14 @@ def HK2011Pairwise():
 	
 	# Evaluation
 	accuracy = lrn.computeAccuracy(ext.testLabels, predictions2)
+	F1 = lrn.computeF1(ext.testLabels, predictions2)
 	report = lrn.evaluatePairwise(ext.testLabels, predictions2)
 	
 	# Reporting
 	stage = "HK2011 2nd Pass"
-	output.reportPairwiseLearning(stage, prr, accuracy, report)
+	output.reportPairwiseLearning(stage, prr, accuracy, F1, report)
 	output.savePredictions("output/" + stage + ".txt", prr.examples[constants.TEST], ext.testExamples, predictions2, ext.testLabels)
-	
+
 	
 	# Significance
 	print constants.SIGNIFICANCE.format(lrn.computeMcNemarSignificance(ext.testLabels, predictions1, predictions2))

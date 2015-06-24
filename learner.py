@@ -16,14 +16,21 @@ import constants
 
 class Learner:
 	### Initialization ###
-	# Initializes the standard scaler and various learning algorithms.
+	# Initializes the standard scaler.
 	def __init__(self):
 		self.scaler = preprocessing.StandardScaler()
 		
-		self.SVM = svm.LinearSVC(verbose = True, fit_intercept = False)
-		self.LR = linear_model.LogisticRegression()
-		
 		self.predictedSimilarities = {}
+	
+	
+	# Initializes SVM with a custom C value.
+	def initSVM(self, C):
+		self.SVM = svm.LinearSVC(C = C, fit_intercept = False, verbose = True)
+	
+	
+	# Initializes logistic regression.
+	def initLR(self):
+		self.LR = linear_model.LogisticRegression()
 
 
 	### SVM ###
