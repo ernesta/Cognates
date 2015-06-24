@@ -26,18 +26,18 @@ def reportPairwiseLearning(stage, prr, accuracy, F1, report):
 
 
 # Prints to terminal key group-based deduction results.
-def reportGroup(stage, scores, testMeanings, allMeanings):
+def reportGroup(stage, scores, allMeanings):
 	print "\n", "### Group-based Deduction (" + stage + ") ###"
-	for i, meaningIndex in enumerate(testMeanings):
-		print "{0:3d} {1:26} {2:.4f}".format(meaningIndex, allMeanings[meaningIndex], scores[i])
-	print "\n", "{0:30} {1:.4f}".format("Average:", sum(scores) / len(scores)), "\n"
+	for meaningIndex in sorted(scores.keys()):
+		print "{0:3d} {1:26} {2:.4f}".format(meaningIndex, allMeanings[meaningIndex], scores[meaningIndex])
+	print "\n", "{0:30} {1:.4f}".format("Average:", sum(scores.values()) / len(scores)), "\n"
 
 
 # Prints to terminal key clustering results.
 def reportCluster(scores, counts, distances, allMeanings):
 	print "\n", "### Clustering ###"
-	for meaningIndex, score in scores.iteritems():
-		print "{0:3d} {1:26} {2:2d} {3:.4f} {4:6.2f}".format(meaningIndex, allMeanings[meaningIndex], counts[meaningIndex], score, distances[meaningIndex])
+	for meaningIndex in sorted(scores.keys()):
+		print "{0:3d} {1:26} {2:2d} {3:.4f} {4:6.2f}".format(meaningIndex, allMeanings[meaningIndex], counts[meaningIndex], scores[meaningIndex], distances[meaningIndex])
 	print "\n", "{0:30} {1:2d} {2:.4f} {3:6.2f}".format("Average:", int(sum(counts.values()) / len(counts)), sum(scores.values()) / len(scores), sum(distances.values()) / len(distances)), "\n"
 
 

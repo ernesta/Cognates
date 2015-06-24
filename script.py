@@ -34,7 +34,7 @@ def pairwiseDeduction(measure):
 	output.reportPairwiseDeduction(constants.DEDUCERS[measure], prr, accuracy, report)
 	output.savePredictions("output/Pairwise " + constants.DEDUCERS[measure] + ".txt", prr.examples[constants.TEST], ext.testExamples, predictedLabels, ext.testLabels)
 
-	return predictedLabels, ext.testLabels
+	return predictedLabels
 
 
 def groupDeduction(measure):
@@ -52,10 +52,10 @@ def groupDeduction(measure):
 	
 	# Evaluation
 	lrn = learner.Learner()
-	V1scores = [lrn.computeV1(trueLabels[meaningIndex], predictedLabels[meaningIndex]) for meaningIndex in prr.testMeanings]
+	V1scores = {meaningIndex: lrn.computeV1(trueLabels[meaningIndex], predictedLabels[meaningIndex]) for meaningIndex in prr.testMeanings}
 
 	# Reporting
-	output.reportGroup(constants.DEDUCERS[measure], V1scores, prr.testMeanings, rdr.meanings)
+	output.reportGroup(constants.DEDUCERS[measure], V1scores, rdr.meanings)
 	output.saveGroup("output/Group " + constants.DEDUCERS[measure] + ".txt", predictedSets)
 
 
@@ -93,7 +93,7 @@ def HK2011Pairwise():
 
 	# Learning
 	lrn = learner.Learner()
-	lrn.initSVM(0.01)
+	lrn.initSVM(0.001)
 	lrn.fitSVM(ext.testExamples, predictions1)
 	
 	# Prediction
@@ -109,9 +109,9 @@ def HK2011Pairwise():
 	output.reportPairwiseLearning(stage, prr, accuracy, F1, report)
 	output.savePredictions("output/" + stage + ".txt", prr.examples[constants.TEST], ext.testExamples, predictions2, ext.testLabels)
 
-	
-	# Significance
-	print constants.SIGNIFICANCE.format(lrn.computeMcNemarSignificance(ext.testLabels, predictions1, predictions2))
+
+#	# Significance
+#	print constants.SIGNIFICANCE.format(lrn.computeMcNemarSignificance(ext.testLabels, predictions1, predictions2))
 
 
 	return ext, lrn
@@ -122,16 +122,12 @@ def HK2011Clustering(ext, lrn):
 	# Feature extraction
 	trueLabels = ext.extractGroupLabels(rdr.cognateSets, rdr.wordforms, prr.testMeanings, prr.testLanguages)
 
-	# Threshold
-	threshold = lrn.computeDistanceThreshold(constants.SVM, rdr.wordforms, prr.testMeanings, prr.testLanguages, ext.HK2011ExtractorFull, trueLabels)
-	print "Threshold:", threshold
-
 	# Learning
 	predictedLabels, predictedSets, clusterCounts, clusterDistances = lrn.cluster(constants.SVM, rdr.wordforms, prr.testMeanings, prr.testLanguages, ext.HK2011ExtractorFull)
-	
+
 	# Evaluation
 	V1scores = {meaningIndex: lrn.computeV1(trueLabels[meaningIndex], predictedLabels[meaningIndex]) for meaningIndex in prr.testMeanings}
-	
+
 	# Reporting
 	output.reportCluster(V1scores, clusterCounts, clusterDistances, rdr.meanings)
 	output.saveGroup("output/Clustering.txt", predictedSets)
@@ -150,7 +146,7 @@ testMeanings = [i for i in range(1, constants.MEANING_COUNT + 1) if i % 10 == 0]
 
 # Pairing
 prr = pairer.Pairer()
-prr.pairBySpecificMeaning(rdr.cognateCCNs, rdr.dCognateCCNs, trainMeanings, devMeanings)
+prr.pairBySpecificMeaning(rdr.cognateCCNs, rdr.dCognateCCNs, trainMeanings, testMeanings)
 
 
 # Learning
