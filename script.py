@@ -121,9 +121,13 @@ def HK2011Pairwise():
 def HK2011Clustering(ext, lrn):
 	# Feature extraction
 	trueLabels = ext.extractGroupLabels(rdr.cognateSets, rdr.wordforms, prr.testMeanings, prr.testLanguages)
+	
+	# Threshold
+#	threshold = lrn.computeDistanceThreshold(constants.SVM, rdr.wordforms, prr.testMeanings, prr.testLanguages, ext.HK2011Extractor, trueLabels)
+#	print "Threshold:", threshold
 
 	# Learning
-	predictedLabels, predictedSets, clusterCounts, clusterDistances = lrn.cluster(constants.SVM, rdr.wordforms, prr.testMeanings, prr.testLanguages, ext.HK2011ExtractorFull)
+	predictedLabels, predictedSets, clusterCounts, clusterDistances = lrn.cluster(constants.SVM, constants.T1, rdr.wordforms, prr.testMeanings, prr.testLanguages, ext.HK2011ExtractorFull)
 
 	# Evaluation
 	V1scores = {meaningIndex: lrn.computeV1(trueLabels[meaningIndex], predictedLabels[meaningIndex]) for meaningIndex in prr.testMeanings}

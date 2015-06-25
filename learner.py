@@ -63,7 +63,7 @@ class Learner:
 	
 	### Clustering ###
 	# For each meaning, clusters all wordforms in the test dataset.
-	def cluster(self, model, wordforms, testMeanings, testLanguages, extractor):
+	def cluster(self, model, threshold, wordforms, testMeanings, testLanguages, extractor):
 		predictedLabels = {}
 		predictedClusters = {}
 		clusterCounts = {}
@@ -81,7 +81,7 @@ class Learner:
 				# Finds the smallest distance between clusters.
 				minDistance = self.computeMinClusterDistance(n, distances, labels)
 				
-				if minDistance <= constants.THRESHOLD:
+				if minDistance <= threshold:
 					predictedLabels[meaningIndex] = labels
 					predictedClusters[meaningIndex] = self.extractClusters(labels, meaningLanguages, wordforms[meaningIndex])
 					
