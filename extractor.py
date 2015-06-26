@@ -27,7 +27,7 @@ class Extractor:
 		self.testLabels = []
 	
 	
-	### Pairwise Baselines ###
+	### Pairwise Methods ###
 	# Identical words baseline (pairwise deduction).
 	def identicalWordsBaseline(self, allExamples, allLabels):
 		self.batchCompute(allExamples, allLabels, self.identicalWordsMeasure)
@@ -43,7 +43,6 @@ class Extractor:
 		self.batchCompute(allExamples, allLabels, self.identicalFirstLetterMeasure)
 	
 	
-	### Group-based Baselines ###
 	# A reproduction of Hauer & Kondrak (2011). Since data has been preprocessed
 	# slightly differently in this project, and in some cases Hauer & Kondrak
 	# only provide minimal implementation information, a *true* comparison among
@@ -58,7 +57,8 @@ class Extractor:
 		# Absolute length difference between the two words
 		self.batchCompute(allExamples, allLabels, self.HK2011Measures)
 
-	
+
+	### Group-based Methods ###
 	# Arranges wordforms into groups of identical items.
 	def identicalWordsGroupBaseline(self, testMeanings, testLanguages, wordforms):
 		return self.groupBaseline(self.getWordform, testMeanings, testLanguages, wordforms)
@@ -251,7 +251,7 @@ class Extractor:
 	def batchCompute(self, allExamples, allLabels, tests):
 		for purpose, examples in allExamples.iteritems():
 			outLabels = allLabels[purpose]
-			
+
 			outExamples = []
 			for i, (form1, form2, language1, language2) in enumerate(examples):
 				testValues = []
@@ -301,15 +301,15 @@ class Extractor:
 		return float(form1 == form2)
 
 	
-	# Checks if the two wordforms have the same first letter.
-	def identicalFirstLetter(self, form1, form2):
-		return float(form1[0] == form2[0])
-	
-	
 	# Checks if the two wordforms have an identical prefix that is at least 4
 	# characters long.
 	def identicalPrefix(self, form1, form2):
 		return float(self.LCPLength(form1, form2) > 3)
+	
+	
+	# Checks if the two wordforms have the same first letter.
+	def identicalFirstLetter(self, form1, form2):
+		return float(form1[0] == form2[0])
 	
 	
 	# Computes minimum edit distance between the two wordforms. Here, all edit
@@ -320,7 +320,7 @@ class Extractor:
 	
 	# Computes normalized minimum edit distance.
 	def basicNED(self, form1, form2):
-		return self.basicMED / self.longerWordLen(form1, form2)
+		return self.basicMED(form1, form2) / self.longerWordLen(form1, form2)
 	
 	
 	# Computes the length of the longest common prefix of the two wordforms.
@@ -331,14 +331,22 @@ class Extractor:
 	# Computes the length of the longest common subsequence of the two
 	# wordforms.
 	def LCSLength(self, form1, form2):
-		subsequence = self.LCS(form1, form2)
-		return float(len(subsequence))
+		lengths = [[0 for j in range(len(form2) + 1)] for i in range(len(form1) + 1)]
+		
+		for i, char1 in enumerate(form1):
+			for j, char2 in enumerate(form2):
+				if char1 == char2:
+					lengths[i + 1][j + 1] = lengths[i][j] + 1
+				else:
+					lengths[i+1][j+1] = max(lengths[i+1][j], lengths[i][j+1])
+	
+		return float(lengths[len(form1)][len(form2)])
 	
 	
 	# Computes the longest common subsequence ratio (Melamed, 1999).
 	def LCSR(self, form1, form2):
 		return self.LCSLength(form1, form2) / self.longerWordLen(form1, form2)
-	
+
 	
 	# Computes Dice's coefficient based on shared bigrams.
 	def bigramDice(self, form1, form2):
@@ -421,13 +429,21 @@ class Extractor:
 	
 	# Computes the ratio of shared extended bigrams of the two words.
 	def commonXBigramRatio(self, form1, form2):
-		return self.commonXBigramNumber(form1,form2) / (self.longerWordLen(form1, form2) - 2)
+		bigramCount = (self.longerWordLen(form1, form2) - 2)
+		if bigramCount < 1:
+			return 0
+		else:
+			return self.commonXBigramNumber(form1,form2) / bigramCount
 	
 
 	# Computes the pair's shared n-gram ratio by dividing the number of shared
 	# n-grams of the two wordforms by the number of n-grams in the longer word.
 	def commonNgramRatio(self, n, form1, form2):
-		return self.commonNgramNumber(n, form1,form2) / (self.longerWordLen(form1, form2) - (n - 1))
+		ngramCount = self.longerWordLen(form1, form2) - (n - 1)
+		if  ngramCount < 1:
+			return 0
+		else:
+			return self.commonNgramNumber(n, form1,form2) / ngramCount
 	
 	
 	# Computes the length of the longer of the two words.
@@ -444,18 +460,6 @@ class Extractor:
 	def wordLenDifference(self, form1, form2):
 		return float(abs(len(form1) - len(form2)))
 	
-	
-	# Finds the longest common subsequence of the two wordforms.
-	def LCS(self, form1, form2):
-		if not form1 or not form2:
-			return ""
-		
-		firstForm1, restForm1, firstForm2, restForm2 = form1[0], form1[1 :], form2[0], form2[1 :]
-		if firstForm1 == firstForm2:
-			return firstForm1 + self.LCS(restForm1, restForm2)
-		else:
-			return max(self.LCS(form1, restForm2), self.LCS(restForm1, form2), key = len)
-
 
 	# Generates a list of the word's n-grams.
 	def ngrams(self, n, word):
