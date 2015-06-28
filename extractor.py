@@ -27,6 +27,16 @@ class Extractor:
 		self.testLabels = []
 	
 	
+	# Resets training and test features. Allows using the same object multiple
+	# times with different feature extraction strategies.
+	def cleanup(self):
+		self.trainExamples = []
+		self.trainLabels = []
+		
+		self.testExamples = []
+		self.testLabels = []
+	
+	
 	### Pairwise Methods ###
 	# Identical words baseline (pairwise deduction).
 	def identicalWordsBaseline(self, allExamples, allLabels):
@@ -454,6 +464,11 @@ class Extractor:
 	# Computes the length of the shorter of the two words.
 	def shorterWordLen(self, form1, form2):
 		return float(len(form1)) if len(form1) < len(form2) else float(len(form2))
+	
+	
+	# Computes the average word length.
+	def averageWordLen(self, form1, form2):
+		return float((len(form1) + len(form2)) / 2)
 	
 	
 	# Computes the absolute difference between the lengths of the two words.
