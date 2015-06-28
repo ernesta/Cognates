@@ -3,7 +3,7 @@ from collections import OrderedDict
 import math
 import os
 
-from leven import levenshtein
+import Levenshtein
 import numpy
 
 import constants
@@ -19,6 +19,8 @@ class Extractor:
 		self.identicalFirstLetterMeasure = [self.identicalFirstLetter]
 		self.identicalPrefixMeasure = [self.identicalPrefix]
 		self.HK2011Measures = [self.basicMED, self.LCPLength, self.commonBigramNumber, self.longerWordLen, self.shorterWordLen, self.wordLenDifference]
+		
+		self.allMeasures = [self.identicalWords, self.identicalPrefix, self.identicalFirstLetter, self.basicMED, self.basicNED, self.jaroDistance, self.jaroWinklerDistance, self.LCPLength, self.LCPRatio, self.LCSLength, self.LCSR, self.bigramDice, self.trigramDice, self.xBigramDice, self.xxBigramDice, self.commonLetterNumber, self.commonBigramNumber, self.commonTrigramNumber, self.commonXBigramNumber, self.commonLetterRatio, self.commonBigramRatio, self.commonTrigramRatio, self.commonXBigramRatio, self.longerWordLen, self.shorterWordLen, self.averageWordLen, self.wordLenDifference]
 		
 		self.trainExamples = []
 		self.trainLabels = []
@@ -325,7 +327,7 @@ class Extractor:
 	# Computes minimum edit distance between the two wordforms. Here, all edit
 	# operations have a cost of 1.
 	def basicMED(self, form1, form2):
-		return float(levenshtein(form1, form2))
+		return float(Levenshtein.distance(form1, form2))
 	
 	
 	# Computes normalized minimum edit distance.
@@ -333,9 +335,25 @@ class Extractor:
 		return self.basicMED(form1, form2) / self.longerWordLen(form1, form2)
 	
 	
+	# Computes the Jaro distance between the two words.
+	def jaroDistance(self, form1, form2):
+		return Levenshtein.jaro(form1, form2)
+	
+	
+	# Computes the Jaro-Winkler distance between the two words.
+	def jaroWinklerDistance(self, form1, form2):
+		return Levenshtein.jaro_winkler(form1, form2, 0.1)
+	
+	
 	# Computes the length of the longest common prefix of the two wordforms.
 	def LCPLength(self, form1, form2):
 		return float(len(os.path.commonprefix([form1, form2])))
+	
+	
+	# Computes the length of the longest common prefix divided by the length of
+	# the longer word.
+	def LCPRatio(self, form1, form2):
+		return self.LCPLength(form1, form2) / self.longerWordLen(form1, form2)
 	
 	
 	# Computes the length of the longest common subsequence of the two
@@ -403,8 +421,13 @@ class Extractor:
 			return 0.0
 		else:
 			return 2 * self.commonNgramNumber(n, form1, form2) / (len(form1) + len(form2) - 2 * (n - 1))
-
 	
+
+	# Computes the number of letters the two words share.
+	def commonLetterNumber(self, form1, form2):
+		return self.commonNgramNumber(1, form1, form2)
+
+
 	# Computes the number of bigrams the two words share.
 	def commonBigramNumber(self, form1, form2):
 		return self.commonNgramNumber(2, form1, form2)
@@ -425,6 +448,11 @@ class Extractor:
 	def commonNgramNumber(self, n, form1, form2):
 		commonNgrams = self.commonNgrams(self.ngrams(n, form1), self.ngrams(n, form2))
 		return float(len(commonNgrams))
+	
+	
+	# Computes the ratio of shared letters of the two words.
+	def commonLetterRatio(self, form1, form2):
+		return self.commonNgramRatio(1, form1, form2)
 	
 	
 	# Computes the ratio of shared bigrams of the two words.
