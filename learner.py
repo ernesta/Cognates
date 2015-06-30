@@ -4,6 +4,7 @@ import random
 
 from sklearn import cluster
 from sklearn import cross_validation
+from sklearn import ensemble
 from sklearn import linear_model
 from sklearn import metrics
 from sklearn import preprocessing
@@ -19,21 +20,15 @@ class Learner:
 	# Initializes the standard scaler.
 	def __init__(self):
 		self.scaler = preprocessing.StandardScaler()
-		
 		self.predictedSimilarities = {}
-	
-	
+
+
+	### SVM ###
 	# Initializes SVM with a custom C value.
 	def initSVM(self, C):
 		self.SVM = svm.LinearSVC(C = C, fit_intercept = False, verbose = True)
 	
 	
-	# Initializes logistic regression.
-	def initLR(self):
-		self.LR = linear_model.LogisticRegression()
-
-
-	### SVM ###
 	# Scales the data to ~N(0, 1), stores scaling information for later
 	# reference, fits the SVM model.
 	def fitSVM(self, trainExamples, trainLabels):
@@ -45,20 +40,46 @@ class Learner:
 		return self.SVM.predict(self.scaler.transform(testExamples))
 	
 	
+	### Logistic Regression ###
+	# Initializes logistic regression.
+	def initLogisticRegression(self, C):
+		self.LR = linear_model.LogisticRegression(C = C, fit_intercept = False, verbose = False)
+	
+	
 	# Scales the data to ~N(0, 1), stores scaling information for later
 	# reference, fits the linear regression.
-	def fitLinearRegression(self, trainExamples, trainLabels):
+	def fitLogisticRegression(self, trainExamples, trainLabels):
 		self.LR.fit(self.scaler.fit_transform(trainExamples), trainLabels)
 	
 	
 	# Scales the data, generates linear regression class predictions.
-	def predictLinearRegression(self, testExamples):
+	def predictLogisticRegression(self, testExamples):
 		return self.LR.predict(self.scaler.transform(testExamples))
 	
 	
 	# Scales the data, generates linear regression probability predictions.
-	def predictProbLinearRegression(self, testExamples):
+	def predictProbLogisticRegression(self, testExamples):
 		return self.LR.predict_proba(self.scaler.transform(testExamples))[1]
+	
+	
+	### Decision Tree Forest ###
+	# Initializes a forest of trees. Equivalent to employing a gardener and
+	# telling them how many trees and where to plant.
+	def initForest(self, estimatorCount, seed):
+		self.forest = ensemble.ExtraTreesClassifier(n_estimators = estimatorCount, random_state = seed)
+	
+	
+	# Scales the data, trains the forest of randomized trees.
+	def fitForest(self, trainExamples, trainLabels):
+		self.forest.fit(self.scaler.fit_transform(trainExamples), trainLabels)
+	
+	
+	# Returns features sorted by importance, and their importance values.
+	def getForestImportances(self):
+		importances = self.forest.feature_importances_
+		indices = numpy.argsort(importances)[ : : -1]
+	
+		return importances, indices
 	
 	
 	### Clustering ###
