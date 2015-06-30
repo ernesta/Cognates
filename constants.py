@@ -58,7 +58,7 @@ TEST = 2
 ALL = 3
 
 
-# METHODS
+# Methods
 IDENTICAL_WORDS = 0
 IDENTICAL_PREFIX = 1
 IDENTICAL_LETTER = 2
@@ -74,8 +74,19 @@ MEASURES = ["Minimum Edit Distance", "Hauer & Kondrak, 2011"]
 MODELS = ["SVM", "Linear Regression"]
 
 
+# Edit operations
+EQUAL = "equal"
+INSERT = "insert"
+DELETE = "delete"
+REPLACE = "replace"
+
+
 # Classes
 TARGETS = ["Non-cognates", "Cognates"]
+
+
+# Vowels
+VOWELS = ["a", "e", "i", "o", "u"]
 
 
 # Formatting

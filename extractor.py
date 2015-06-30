@@ -20,8 +20,6 @@ class Extractor:
 		self.identicalPrefixMeasure = [self.identicalPrefix]
 		self.HK2011Measures = [self.basicMED, self.LCPLength, self.commonBigramNumber, self.longerWordLen, self.shorterWordLen, self.wordLenDifference]
 		
-		self.allMeasures = [self.identicalWords, self.identicalPrefix, self.identicalFirstLetter, self.basicMED, self.basicNED, self.jaroDistance, self.jaroWinklerDistance, self.LCPLength, self.LCPRatio, self.LCSLength, self.LCSR, self.bigramDice, self.trigramDice, self.xBigramDice, self.xxBigramDice, self.commonLetterNumber, self.commonBigramNumber, self.commonTrigramNumber, self.commonXBigramNumber, self.commonLetterRatio, self.commonBigramRatio, self.commonTrigramRatio, self.commonXBigramRatio, self.longerWordLen, self.shorterWordLen, self.averageWordLen, self.wordLenDifference]
-		
 		self.trainExamples = []
 		self.trainLabels = []
 
@@ -266,6 +264,9 @@ class Extractor:
 
 			outExamples = []
 			for i, (form1, form2, language1, language2) in enumerate(examples):
+#				form1 = "".join([char for char in form1 if char not in vowels])
+#				form2 = "".join([char for char in form2 if char not in vowels])
+
 				testValues = []
 				
 				for test in tests:
@@ -280,7 +281,40 @@ class Extractor:
 				self.testLabels.extend(outLabels)
 
 		self.formatExamples()
-
+	
+	
+	# Extracts all edit operations (insertions, deletions, replacements and
+	# matches) from positive training examples.
+	def extractEditOps(self, allExamples, allLabels):
+		operations = {constants.EQUAL: {}, constants.INSERT: {}, constants.REPLACE: {}}
+	
+		for index, label in enumerate(allLabels[constants.TRAIN]):
+			if label == 1:
+				(form1, form2, lang1, lang2) = allExamples[constants.TRAIN][index]
+		
+				for (tag, i, j, m, n) in Levenshtein.opcodes(form1, form2):
+					o = m
+					
+					for k in range(i, j):
+						if tag == constants.DELETE:
+							operations[constants.INSERT][form1[k]] = operations[constants.INSERT].get(form1[k], 0) + 1
+						
+						elif tag == constants.INSERT:
+							operations[constants.INSERT][form2[o]] = operations[constants.INSERT].get(form2[o], 0) + 1
+			
+						elif tag == constants.EQUAL:
+							operations[constants.EQUAL][form1[k]] = operations[constants.EQUAL].get(form1[k], 0) + 1
+			
+						elif tag == constants.REPLACE:
+							x = form1[k] if form1[k] < form2[o] else form2[o]
+							y = form2[o] if form1[k] < form2[o] else form1[k]
+							
+							operations[constants.REPLACE][x + y] = operations[constants.REPLACE].get(x + y, 0) + 1
+				
+						o += 1
+	
+		return operations
+	
 
 	# Returns, for each meaning, a list of language-sorted cognate group label
 	# indices for the test dataset.
@@ -310,7 +344,7 @@ class Extractor:
 	### Word Similarity Measures ###
 	# Checks if the two wordforms are identical.
 	def identicalWords(self, form1, form2):
-		return float(form1 == form2)
+		return float(form1 == form2) if (len(form1) * len(form2) > 0) else 0.0
 
 	
 	# Checks if the two wordforms have an identical prefix that is at least 4
@@ -321,28 +355,28 @@ class Extractor:
 	
 	# Checks if the two wordforms have the same first letter.
 	def identicalFirstLetter(self, form1, form2):
-		return float(form1[0] == form2[0])
+		return float(form1[0] == form2[0]) if (len(form1) * len(form2) > 0) else 0.0
 	
 	
 	# Computes minimum edit distance between the two wordforms. Here, all edit
 	# operations have a cost of 1.
 	def basicMED(self, form1, form2):
-		return float(Levenshtein.distance(form1, form2))
+		return float(Levenshtein.distance(form1, form2)) if (len(form1) * len(form2) > 0) else 1.0
 	
 	
 	# Computes normalized minimum edit distance.
 	def basicNED(self, form1, form2):
-		return self.basicMED(form1, form2) / self.longerWordLen(form1, form2)
+		return self.basicMED(form1, form2) / self.longerWordLen(form1, form2) if (len(form1) * len(form2) > 0) else 1.0
 	
 	
 	# Computes the Jaro distance between the two words.
 	def jaroDistance(self, form1, form2):
-		return Levenshtein.jaro(form1, form2)
+		return Levenshtein.jaro(form1, form2) if (len(form1) * len(form2) > 0) else 0.0
 	
 	
 	# Computes the Jaro-Winkler distance between the two words.
 	def jaroWinklerDistance(self, form1, form2):
-		return Levenshtein.jaro_winkler(form1, form2, 0.1)
+		return Levenshtein.jaro_winkler(form1, form2, 0.1) if (len(form1) * len(form2) > 0) else 0.0
 	
 	
 	# Computes the length of the longest common prefix of the two wordforms.
@@ -353,7 +387,7 @@ class Extractor:
 	# Computes the length of the longest common prefix divided by the length of
 	# the longer word.
 	def LCPRatio(self, form1, form2):
-		return self.LCPLength(form1, form2) / self.longerWordLen(form1, form2)
+		return self.LCPLength(form1, form2) / self.longerWordLen(form1, form2) if (len(form1) * len(form2) > 0) else 0.0
 	
 	
 	# Computes the length of the longest common subsequence of the two
@@ -373,7 +407,7 @@ class Extractor:
 	
 	# Computes the longest common subsequence ratio (Melamed, 1999).
 	def LCSR(self, form1, form2):
-		return self.LCSLength(form1, form2) / self.longerWordLen(form1, form2)
+		return self.LCSLength(form1, form2) / self.longerWordLen(form1, form2) if (len(form1) * len(form2) > 0) else 0.0
 
 	
 	# Computes Dice's coefficient based on shared bigrams.
@@ -468,20 +502,14 @@ class Extractor:
 	# Computes the ratio of shared extended bigrams of the two words.
 	def commonXBigramRatio(self, form1, form2):
 		bigramCount = (self.longerWordLen(form1, form2) - 2)
-		if bigramCount < 1:
-			return 0
-		else:
-			return self.commonXBigramNumber(form1,form2) / bigramCount
+		return self.commonXBigramNumber(form1,form2) / bigramCount if bigramCount > 0 else 0.0
 	
 
 	# Computes the pair's shared n-gram ratio by dividing the number of shared
 	# n-grams of the two wordforms by the number of n-grams in the longer word.
 	def commonNgramRatio(self, n, form1, form2):
 		ngramCount = self.longerWordLen(form1, form2) - (n - 1)
-		if  ngramCount < 1:
-			return 0
-		else:
-			return self.commonNgramNumber(n, form1,form2) / ngramCount
+		return self.commonNgramNumber(n, form1,form2) / ngramCount if ngramCount > 0 else 0.0
 	
 	
 	# Computes the length of the longer of the two words.
@@ -502,6 +530,11 @@ class Extractor:
 	# Computes the absolute difference between the lengths of the two words.
 	def wordLenDifference(self, form1, form2):
 		return float(abs(len(form1) - len(form2)))
+	
+	
+	# Computes the relative word length difference between the two words.
+	def wordLenDifferenceRatio(self, form1, form2):
+		return self.wordLenDifference(form1, form2) / self.longerWordLen(form1, form2) if (len(form1) > 0 or len(form2) > 0) else 0.0
 	
 
 	# Generates a list of the word's n-grams.
