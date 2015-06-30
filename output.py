@@ -7,10 +7,11 @@ import constants
 
 ### Printing to Terminal ###
 # Prints to terminal key pairwise deduction results.
-def reportPairwiseDeduction(stage, prr, accuracy, report):
+def reportPairwiseDeduction(stage, prr, accuracy, F1, report):
 	print "\n", "### Pairwise Deduction (" + stage + ") ###"
 	print constants.REPORTING.format("Negative test examples:", (1 - prr.positiveCounts[constants.TEST] / prr.allCounts[constants.TEST]))
 	print "\n", constants.REPORTING.format("Accuracy:", accuracy)
+	print constants.REPORTING.format("F1:", F1)
 	print "\n", report
 
 
