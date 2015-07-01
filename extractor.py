@@ -20,6 +20,10 @@ class Extractor:
 		self.identicalPrefixMeasure = [self.identicalPrefix]
 		self.HK2011Measures = [self.basicMED, self.LCPLength, self.commonBigramNumber, self.longerWordLen, self.shorterWordLen, self.wordLenDifference]
 		
+		self.negativeMeasure = [self.sharedLetter]
+		
+		self.allMeasures = [self.identicalWords, self.identicalPrefix, self.identicalFirstLetter, self.basicMED, self.basicNED, self.jaroDistance, self.jaroWinklerDistance, self.LCPLength, self.LCPRatio, self.LCSLength, self.LCSR, self.bigramDice, self.commonBigramNumber, self.commonBigramRatio, self.trigramDice, self.commonTrigramNumber, self.commonTrigramRatio, self.xBigramDice, self.xxBigramDice, self.commonXBigramNumber, self.commonXBigramRatio, self.commonLetterNumber, self.commonLetterRatio, self.longerWordLen, self.shorterWordLen, self.averageWordLen, self.wordLenDifference, self.wordLenDifferenceRatio]
+		
 		self.trainExamples = []
 		self.trainLabels = []
 
@@ -342,6 +346,14 @@ class Extractor:
 
 
 	### Word Similarity Measures ###
+	# Returns 1 if at least one letter is shared between the two words.
+	def sharedLetter(self, form1, form2):
+		for char in form1:
+			if char in form2:
+				return 1.0
+		return 0.0
+
+
 	# Checks if the two wordforms are identical.
 	def identicalWords(self, form1, form2):
 		return float(form1 == form2) if (len(form1) * len(form2) > 0) else 0.0

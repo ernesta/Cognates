@@ -184,7 +184,7 @@ def completeFeatureSelection():
 				ext.cleanup()
 				ext.batchCompute(prr.examples, prr.labels, methods)
 
-				coefficients, F1, accuracy, report = learn(ext)
+				coefficients, F1, accuracy, report = learn(ext, 0.001)
 	
 				print "{0}\n{1}\n{2}".format(IDs, coefficients, F1)
 				output.write("{0}\t{1}\t{2}\n".format(IDs, F1, coefficients))
@@ -236,8 +236,8 @@ def groupFeatureSelection():
 	]
 
 	# Feature selection
-	with open("output/Measures.txt", "wb") as output:
-		for i in range(2, len(featureSets) + 1):
+	with open("output/Measures 8-11.txt", "wb") as output:
+		for i in range(8, len(featureSets) + 1):
 			for sets in itertools.combinations(featureSets, i):
 				for product in itertools.product(*sets):
 					IDs = [ID for (ID, method) in product]
@@ -246,7 +246,7 @@ def groupFeatureSelection():
 					ext.cleanup()
 					ext.batchCompute(prr.examples, prr.labels, methods)
 					
-					coefficients, F1, accuracy, report = learn(ext)
+					coefficients, F1, accuracy, report = learn(ext, 0.001)
 					
 					print "{0}\n{1}\n{2}".format(IDs, coefficients, F1)
 					output.write("{0}\t{1}\t{2}\n".format(IDs, F1, coefficients))
@@ -271,10 +271,60 @@ def treeFeatureSelection():
 		print("Feature {0}: {1:.4f}".format(indices[i], importances[indices[i]]))
 
 
-def learn(ext):
+def editOperations():
+	# Feature extraction
+	ext = extractor.Extractor()
+	operations = ext.extractEditOps(prr.examples, prr.labels)
+	
+	for tag, correspondences in operations.iteritems():
+		print tag
+		
+		items = sorted(correspondences.items(), key = operator.itemgetter(1), reverse = True)
+		for i, (entry, count) in enumerate(items):
+			if i < 5:
+				print entry, count
+			else:
+				break
+
+
+def negativeElimination():
+	# Feature extraction
+	ext = extractor.Extractor()
+	ext.batchCompute(prr.examples, prr.labels, ext.negativeMeasure)
+	
+	predictions = ext.testExamples.reshape((ext.testExamples.shape[0],))
+
+	# Evaluation
+	lrn = learner.Learner()
+	accuracy = lrn.computeAccuracy(ext.testLabels, predictions)
+	F1 = lrn.computeF1(ext.testLabels, predictions)
+	report = lrn.evaluatePairwise(ext.testLabels, predictions)
+	
+	# Reporting
+	stage = "Negative Elimination"
+	output.reportPairwiseDeduction(stage, prr, accuracy, F1, report)
+	output.savePredictions("output/" + stage + ".txt", prr.examples[constants.TEST], ext.testExamples, predictions, ext.testLabels)
+	
+	return predictions
+
+
+def pairwiseLearning():
+	# Feature extraction
+	ext = extractor.Extractor()
+	ext.batchCompute(prr.examples, prr.labels, ext.allMeasures)
+	
+	# Learning
+	coefficients, F1, accuracy, report = learn(ext, 0.00005)
+
+	# Reporting
+	stage = "Pairwise Learning"
+	output.reportPairwiseLearning(stage, prr, accuracy, F1, report)
+
+
+def learn(ext, C):
 	# Learning
 	lrn = learner.Learner()
-	lrn.initLogisticRegression(0.001)
+	lrn.initLogisticRegression(C)
 	lrn.fitLogisticRegression(ext.trainExamples, ext.trainLabels)
 	
 	# Prediction
@@ -286,35 +336,6 @@ def learn(ext):
 	report = lrn.evaluatePairwise(ext.testLabels, predictions)
 	
 	return lrn.LR.coef_, F1, accuracy, report
-
-
-def editOperations():
-	# Feature extraction
-	ext = extractor.Extractor()
-	operations = ext.extractEditOps(prr.examples, prr.labels)
-
-	for tag, correspondences in operations.iteritems():
-		print tag
-	
-		items = sorted(correspondences.items(), key = operator.itemgetter(1), reverse = True)
-		for i, (entry, count) in enumerate(items):
-			if i < 5:
-				print entry, count
-			else:
-				break
-
-
-def pairwiseLearning():
-	# Feature extraction
-	ext = extractor.Extractor()
-	ext.batchCompute(prr.examples, prr.labels, features)
-	
-	# Learning
-	coefficients, F1, accuracy, report = learn(ext)
-	
-	# Reporting
-	stage = "Pairwise Learning"
-	output.reportPairwiseLearning(stage, prr, accuracy, F1, report)
 
 
 
@@ -334,6 +355,3 @@ prr.pairBySpecificMeaning(rdr.cognateCCNs, rdr.dCognateCCNs, trainMeanings, devM
 
 
 # Learning
-#treeFeatureSelection()
-
-editOperations()
