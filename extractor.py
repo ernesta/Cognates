@@ -142,6 +142,17 @@ class Extractor:
 		return self.compute(self.HK2011Measures, form1, form2, languages, language1, language2)
 	
 	
+	# Extracts all the necessary features.
+	def customExtractor(self, form1, form2):
+		operations = self.exampleLetterFeature(form1, form2)
+		indices = numpy.triu_indices_from(operations)
+		
+		example = [test(form1, form2) for test in self.allMeasures]
+		example.extend(numpy.asarray(operations[indices]))
+		
+		return example
+	
+	
 	### Language Similarity ###
 	# Extracts the necessary language similarity values from the language
 	# similarity matrix, appends the new feature to the existing test set.
@@ -165,7 +176,8 @@ class Extractor:
 	
 	# For each example, adds a set of binary language pair features. All
 	# features are 0 except for a single feature that corresponds to the
-	# example's language pair. That feature is set to 1.
+	# example's language pair. That feature is set to 1. Used in Hauer &
+	# Kondrak, 2011.
 	def appendLanguageFeatures(self, allExamples, purpose, languages):
 		featureCount = self.countLanguageFeatures(languages)
 		languageFeatures = [[0.0] * featureCount for i in range(len(allExamples[purpose]))]
@@ -236,6 +248,83 @@ class Extractor:
 			return index2, index1
 
 
+	### Edit Operations ###
+	# Extracts all edit operations (insertions, deletions, replacements and
+	# matches) from positive training examples, stores counts in a matrix.
+	def extractEditOps(self, allExamples, allLabels):
+		dimensions = constants.LAST - constants.FIRST + 3
+		operations = numpy.zeros((dimensions, dimensions))
+		
+		for index, label in enumerate(allLabels[constants.TRAIN]):
+			if label == 1:
+				(form1, form2, lang1, lang2) = allExamples[constants.TRAIN][index]
+				operations = numpy.add(operations, self.exampleLetterFeature(form1, form2))
+
+		return operations
+	
+	
+	# For each example, appends a set of letter correspondence features.
+	def appendLetterFeatures(self, allExamples, allLabels):
+		for purpose, examples in allExamples.iteritems():
+			letterFeatures = []
+				
+			for index, (form1, form2, language1, language2) in enumerate(examples):
+				operations = self.exampleLetterFeature(form1, form2)
+				indices = numpy.triu_indices_from(operations)
+				letterFeatures.append(numpy.asarray(operations[indices]))
+
+			letterFeatures = numpy.array(letterFeatures)
+				
+			if purpose == constants.TRAIN:
+				self.trainExamples = numpy.column_stack((self.trainExamples, letterFeatures)) if numpy.any(self.trainExamples) else letterFeatures
+				self.trainLabels = numpy.array(allLabels[purpose])
+			elif purpose == constants.TEST:
+				self.testExamples = numpy.column_stack((self.testExamples, letterFeatures)) if numpy.any(self.testExamples) else letterFeatures
+				self.testLabels = numpy.array(allLabels[purpose])
+	
+
+	# Given two words, extracts all letter correspondence features by aligning
+	# the two forms.
+	def exampleLetterFeature(self, form1, form2):
+		# Adds one dimensions for a space, and another for nothing (i.e.,
+		# insertion/deletion).
+		dimensions = constants.LAST - constants.FIRST + 3
+		space = dimensions - 2
+		nothing = dimensions - 1
+		
+		operations = numpy.zeros((dimensions, dimensions))
+		
+		for (tag, i, j, m, n) in Levenshtein.opcodes(form1, form2):
+			if tag == constants.INSERT:
+				for o in range(m, n):
+					letter = ord(form2[o]) - constants.FIRST if ord(form2[o]) >= constants.FIRST else space
+					operations[nothing][letter] += 1
+					operations[letter][nothing] += 1
+
+			else:
+				o = m
+				
+				for k in range(i, j):
+					if tag == constants.DELETE:
+						letter = ord(form1[k]) - constants.FIRST if ord(form1[k]) >= constants.FIRST else space
+						operations[nothing][letter] += 1
+						operations[letter][nothing] += 1
+				
+					elif tag == constants.EQUAL:
+						letter = ord(form1[k]) - constants.FIRST if ord(form1[k]) >= constants.FIRST else space
+						operations[letter][letter] += 1
+						
+					elif tag == constants.REPLACE:
+						letter1 = ord(form1[k]) - constants.FIRST if ord(form1[k]) >= constants.FIRST else space
+						letter2 = ord(form2[o]) - constants.FIRST if ord(form2[o]) >= constants.FIRST else space
+						operations[letter1][letter2] += 1
+						operations[letter2][letter1] += 1
+		
+					o += 1
+
+		return operations
+
+
 	### Feature Extraction ###
 	# Uses the list of word similarity measures to generate a single example from
 	# two wordforms.
@@ -285,39 +374,6 @@ class Extractor:
 				self.testLabels.extend(outLabels)
 
 		self.formatExamples()
-	
-	
-	# Extracts all edit operations (insertions, deletions, replacements and
-	# matches) from positive training examples.
-	def extractEditOps(self, allExamples, allLabels):
-		operations = {constants.EQUAL: {}, constants.INSERT: {}, constants.REPLACE: {}}
-	
-		for index, label in enumerate(allLabels[constants.TRAIN]):
-			if label == 1:
-				(form1, form2, lang1, lang2) = allExamples[constants.TRAIN][index]
-		
-				for (tag, i, j, m, n) in Levenshtein.opcodes(form1, form2):
-					o = m
-					
-					for k in range(i, j):
-						if tag == constants.DELETE:
-							operations[constants.INSERT][form1[k]] = operations[constants.INSERT].get(form1[k], 0) + 1
-						
-						elif tag == constants.INSERT:
-							operations[constants.INSERT][form2[o]] = operations[constants.INSERT].get(form2[o], 0) + 1
-			
-						elif tag == constants.EQUAL:
-							operations[constants.EQUAL][form1[k]] = operations[constants.EQUAL].get(form1[k], 0) + 1
-			
-						elif tag == constants.REPLACE:
-							x = form1[k] if form1[k] < form2[o] else form2[o]
-							y = form2[o] if form1[k] < form2[o] else form1[k]
-							
-							operations[constants.REPLACE][x + y] = operations[constants.REPLACE].get(x + y, 0) + 1
-				
-						o += 1
-	
-		return operations
 	
 
 	# Returns, for each meaning, a list of language-sorted cognate group label

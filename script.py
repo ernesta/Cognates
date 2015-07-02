@@ -2,6 +2,8 @@ from __future__ import division
 import itertools
 import operator
 
+import numpy
+
 import constants
 import extractor
 import learner
@@ -184,10 +186,11 @@ def completeFeatureSelection():
 				ext.cleanup()
 				ext.batchCompute(prr.examples, prr.labels, methods)
 
-				coefficients, F1, accuracy, report = learn(ext, 0.001)
+				lrn, predictions = learn(ext, 0.001)
+				F1 = lrn.computeF1(ext.testLabels, predictions)
 	
-				print "{0}\n{1}\n{2}".format(IDs, coefficients, F1)
-				output.write("{0}\t{1}\t{2}\n".format(IDs, F1, coefficients))
+				print "{0}\n{1}\n{2}".format(IDs, coef_, F1)
+				output.write("{0}\t{1}\t{2}\n".format(IDs, F1, coef_))
 
 
 def groupFeatureSelection():
@@ -236,8 +239,8 @@ def groupFeatureSelection():
 	]
 
 	# Feature selection
-	with open("output/Measures 8-11.txt", "wb") as output:
-		for i in range(8, len(featureSets) + 1):
+	with open("output/Measures.txt", "wb") as output:
+		for i in range(1, len(featureSets) + 2):
 			for sets in itertools.combinations(featureSets, i):
 				for product in itertools.product(*sets):
 					IDs = [ID for (ID, method) in product]
@@ -246,10 +249,11 @@ def groupFeatureSelection():
 					ext.cleanup()
 					ext.batchCompute(prr.examples, prr.labels, methods)
 					
-					coefficients, F1, accuracy, report = learn(ext, 0.001)
+					lrn, predictions = learn(ext, 0.001)
+					F1 = lrn.computeF1(ext.testLabels, predictions)
 					
-					print "{0}\n{1}\n{2}".format(IDs, coefficients, F1)
-					output.write("{0}\t{1}\t{2}\n".format(IDs, F1, coefficients))
+					print "{0}\n{1}\n{2}".format(IDs, lrn.coef_, F1)
+					output.write("{0}\t{1}\t{2}\n".format(IDs, F1, lrn.coef_))
 
 
 def treeFeatureSelection():
@@ -275,16 +279,11 @@ def editOperations():
 	# Feature extraction
 	ext = extractor.Extractor()
 	operations = ext.extractEditOps(prr.examples, prr.labels)
-	
-	for tag, correspondences in operations.iteritems():
-		print tag
-		
-		items = sorted(correspondences.items(), key = operator.itemgetter(1), reverse = True)
-		for i, (entry, count) in enumerate(items):
-			if i < 5:
-				print entry, count
-			else:
-				break
+
+	print operations[ord("a") - constants.FIRST][ord("e") - constants.FIRST]
+	print operations[ord("a") - constants.FIRST][ord("z") - constants.FIRST]
+	print numpy.argmax(operations[:, len(operations) - 1])
+	print numpy.max(operations[:, len(operations) - 1])
 
 
 def negativeElimination():
@@ -309,15 +308,31 @@ def negativeElimination():
 
 
 def pairwiseLearning():
+	# 1st pass
 	# Feature extraction
 	ext = extractor.Extractor()
 	ext.batchCompute(prr.examples, prr.labels, ext.allMeasures)
+	ext.appendLetterFeatures(prr.examples, prr.labels)
+	
+	# 0.0001: 0.7043
+	# Learning
+	lrn, predictions = learn(ext, 0.0001)
+	
+	# 2nd pass
+	# Feature extraction
+	ext.appendTrainSimilarities(prr.examples)
+	lrn.predictLanguageSimilarity(constants.LR, rdr.wordforms, ext.customExtractor)
+	ext.appendTestSimilarities(lrn.predictedSimilarities, prr.examples)
 	
 	# Learning
-	coefficients, F1, accuracy, report = learn(ext, 0.00005)
+	lrn, predictions = learn(ext, 0.0001)
 
 	# Reporting
 	stage = "Pairwise Learning"
+	accuracy = lrn.computeAccuracy(ext.testLabels, predictions)
+	F1 = lrn.computeF1(ext.testLabels, predictions)
+	report = lrn.evaluatePairwise(ext.testLabels, predictions)
+	
 	output.reportPairwiseLearning(stage, prr, accuracy, F1, report)
 
 
@@ -330,12 +345,7 @@ def learn(ext, C):
 	# Prediction
 	predictions = lrn.predictLogisticRegression(ext.testExamples)
 	
-	# Evaluation
-	accuracy = lrn.computeAccuracy(ext.testLabels, predictions)
-	F1 = lrn.computeF1(ext.testLabels, predictions)
-	report = lrn.evaluatePairwise(ext.testLabels, predictions)
-	
-	return lrn.LR.coef_, F1, accuracy, report
+	return lrn, predictions
 
 
 

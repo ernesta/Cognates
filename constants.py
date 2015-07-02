@@ -85,8 +85,10 @@ REPLACE = "replace"
 TARGETS = ["Non-cognates", "Cognates"]
 
 
-# Vowels
+# Letters
 VOWELS = ["a", "e", "i", "o", "u"]
+FIRST = ord("a")
+LAST = ord("z")
 
 
 # Formatting

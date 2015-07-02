@@ -43,7 +43,7 @@ class Learner:
 	### Logistic Regression ###
 	# Initializes logistic regression.
 	def initLogisticRegression(self, C):
-		self.LR = linear_model.LogisticRegression(C = C, fit_intercept = False, verbose = False)
+		self.LR = linear_model.LogisticRegression(penalty = "l2", solver = "liblinear", C = C, fit_intercept = False, verbose = True)
 	
 	
 	# Scales the data to ~N(0, 1), stores scaling information for later
@@ -59,7 +59,7 @@ class Learner:
 	
 	# Scales the data, generates linear regression probability predictions.
 	def predictProbLogisticRegression(self, testExamples):
-		return self.LR.predict_proba(self.scaler.transform(testExamples))[1]
+		return self.LR.predict_proba(self.scaler.transform(testExamples))[:, 1]
 	
 	
 	### Decision Tree Forest ###
@@ -373,11 +373,11 @@ class Learner:
 					
 					if not form1 or not form2:
 						continue
-					
+
 					if model == constants.SVM:
 						prediction = self.predictSVM(extractor(form1, form2))
 					elif model == constants.LR:
-						prediction = self.predictLinearRegression(extractor(form1, form2))
+						prediction = self.predictLogisticRegression(extractor(form1, form2))
 					
 					predictedCounts[language1][language2][0] += 1
 					predictedCounts[language1][language2][1] += prediction
