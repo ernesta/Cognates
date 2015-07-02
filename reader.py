@@ -163,9 +163,28 @@ class Reader:
 			if form and form[0] == "-":
 				form = ""
 			
-			# Drops parentheses, checks if after that the string is not empty.
+			# Drops parentheses (and everything inside them).
 			form = re.sub(r"\([^)]*\)", "", form).strip()
 			
+			# Removes non-alphabetic characters (but leaves spaces).
+			form = re.sub(r"([^\s\w]|_)+", "", form).strip()
+
+			# If multiple words, splits them and chooses the longest one. First,
+			# often multiple words separated by a space indicate alternatives.
+			# Second, some are words like "to breathe", where "to" is irrelevant
+			# to - and even hurts - the algorithm. Finally, having a space -
+			# letter correspondence is not at all useful. In summary, choosing
+			# the lesser of the two evils.
+#			if " " in form:
+#				pieces = form.split()
+#				form = pieces[0]
+#				
+#				for piece in pieces:
+#					if len(piece) > len(form):
+#						form = piece
+
+			# If after all that stripping and splitting the form is still there,
+			# it is added to the final form list.
 			if len(form) > 0:
 				forms.append(form)
 	
