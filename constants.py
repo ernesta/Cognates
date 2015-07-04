@@ -91,6 +91,29 @@ FIRST = ord("a")
 LAST = ord("z")
 
 
+# Languages
+LANGUAGE_GROUPS = [
+	# Celtic subfamily
+	range(1, 8),
+	# Romance subfamily
+	range(8, 24),
+	# Germanic subfamily
+	range(24, 39),
+	# Baltoslavic subfamily
+	range(39, 55) + range(85, 95),
+	# Indoaryan cluster
+	range(55, 66),
+	# Greek subfamily
+	range(66, 71),
+	# Armenian subfamily
+	range(71, 73),
+	# Iranian cluster
+	range(73, 80),
+	# Albanian subfamily
+	range(80, 85) + [95]
+]
+
+
 # Formatting
 PICKLE_EXT = "pickles/ext{0}.pickle"
 PICKLE_LRN = "pickles/lrn{0}.pickle"

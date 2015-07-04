@@ -281,6 +281,50 @@ class Extractor:
 			elif purpose == constants.TEST:
 				self.testExamples = numpy.column_stack((self.testExamples, letterFeatures)) if numpy.any(self.testExamples) else letterFeatures
 				self.testLabels = numpy.array(allLabels[purpose])
+
+
+	# For each example, appends a set of letter correspondence features.
+	def appendGroupLetterFeatures(self, allExamples, allLabels):
+		# There are now 9 language groups, and thus 9 * 10 / 2 = 45 possible
+		# language pairs.
+		groupCount = len(constants.LANGUAGE_GROUPS)
+		groupPairCount = int(groupCount * (groupCount + 1) / 2)
+		
+		# Formats the language-group correspondence in a more practical way.
+		groups = {}
+		for group in constants.LANGUAGE_GROUPS:
+			for language in group:
+				groups[language]  = group
+		
+		for purpose, examples in allExamples.iteritems():
+			letterFeatures = []
+			
+			for index, (form1, form2, language1, language2) in enumerate(examples):
+				operations = self.exampleLetterFeature(form1, form2)
+				indices = numpy.triu_indices_from(operations)
+				features = numpy.asarray(operations[indices])
+				
+				letterFeature = []
+				
+				for i in range(groupCount):
+					for j in range(i, groupCount):
+						if i == language1 and j == language2:
+							letterFeature.extend(features)
+						else:
+							letterFeature.extend([0.0] * len(features))
+		
+				letterFeatures.append(numpy.array(letterFeature))
+			
+			letterFeatures = numpy.array(letterFeatures)
+			
+			if purpose == constants.TRAIN:
+				print self.trainExamples.shape
+				print letterFeatures.shape
+				self.trainExamples = numpy.column_stack((self.trainExamples, letterFeatures)) if numpy.any(self.trainExamples) else letterFeatures
+				self.trainLabels = numpy.array(allLabels[purpose])
+			elif purpose == constants.TEST:
+				self.testExamples = numpy.column_stack((self.testExamples, letterFeatures)) if numpy.any(self.testExamples) else letterFeatures
+				self.testLabels = numpy.array(allLabels[purpose])
 	
 
 	# Given two words, extracts all letter correspondence features by aligning
