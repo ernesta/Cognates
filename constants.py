@@ -12,7 +12,8 @@ T2 = 0.3420
 
 
 # Data
-IN = "input.txt"
+IN = "input/input.txt"
+POS = "input/POS.txt"
 
 
 # Types

@@ -9,12 +9,12 @@ class Reader:
 	### Initialization ###
 	# Initializes the reader by setting the target filename and various data
 	# structures that will be used for reading the file.
-	def __init__(self, filename):
-		# Input file name.
-		self.filename = filename
-		
+	def __init__(self):
 		# Meanings and their indices (1 - 200).
 		self.meanings = OrderedDict()
+		
+		# POS tags of each of the 200 meanings.
+		self.POSTags = OrderedDict()
 		
 		# Languages and their indices (1 - 95).
 		self.languages = {}
@@ -52,10 +52,16 @@ class Reader:
 
 
 	### Reading ###
+	# Reads the input data file and the POS tags file.
+	def read(self):
+		self.readData()
+		self.readPOSTags()
+	
+	
 	# Reads the input file line by line, parses each line and populates the
 	# associated data structures accordingly.
-	def read(self):
-		with open(self.filename, "rb") as data:
+	def readData(self):
+		with open(constants.IN, "rb") as data:
 			for line in data:
 				# Header line, indicates the beginning of a block.
 				if line[0] == constants.HEADER:
@@ -65,16 +71,16 @@ class Reader:
 						break
 					
 					self.processHeader(line)
-		
+				
 				# Subheader line, indicates the beginning of a subblock.
 				elif line[0] == constants.SUBHEADER:
 					self.processSubheader(line)
-			
+				
 				# Relationship line, describes relationships between two
 				# subblocks.
 				elif line[0] == constants.RELATIONSHIP:
 					self.processRelationship(line)
-	
+				
 				# Form line.
 				else:
 					# CCN0, CCN3 and CCN5 forms are removed.
@@ -86,9 +92,16 @@ class Reader:
 						continue
 					else:
 						self.processForm(line)
-
+	
 		# Orders languages by their indices for better readability.
 		self.languages = OrderedDict(sorted(self.languages.items(), key = lambda x: x[0]))
+	
+	
+	# Reads in the POS tags.
+	def readPOSTags(self):
+		with open(constants.POS, "rb") as data:
+			for i, line in enumerate(data):
+				self.POSTags[i + 1] = line
 
 
 	### Processing Lines ###
