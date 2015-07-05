@@ -173,12 +173,10 @@ class Extractor:
 		
 			if purpose == constants.TRAIN:
 				self.trainExamples = numpy.hstack((self.trainExamples, tagFeatures)) if numpy.any(self.trainExamples) else tagFeatures
-				self.trainExamples = numpy.copy(tagFeatures)
 				self.trainLabels = numpy.array(allLabels[purpose])
 			else:
 				self.testExamples = numpy.hstack((self.testExamples, tagFeatures)) if numpy.any(self.testExamples) else tagFeatures
 				self.testLabels = numpy.array(allLabels[purpose])
-				self.testExamples = numpy.copy(tagFeatures)
 
 	
 	### Language Similarity ###
