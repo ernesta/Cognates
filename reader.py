@@ -101,7 +101,7 @@ class Reader:
 	def readPOSTags(self):
 		with open(constants.POS, "rb") as data:
 			for i, line in enumerate(data):
-				self.POSTags[i + 1] = line
+				self.POSTags[i + 1] = line.strip()
 
 
 	### Processing Lines ###

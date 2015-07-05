@@ -153,6 +153,34 @@ class Extractor:
 		return example
 	
 	
+	### POS Tags ###
+	# Appends binary POS tag features to each examples. POS tags are decided
+	# based on the English meaning rather than the particular language word.
+	def appendPOSTags(self, allExamples, allLabels, meaningRange, POSTags):
+		for purpose, ranges in meaningRange.iteritems():
+			tags = sorted(list(set(POSTags.values())))
+			
+			exampleCount = len(allExamples[purpose])
+			tagCount = len(tags)
+			tagFeatures = numpy.zeros((exampleCount, tagCount))
+			
+			start = 0
+			for meaningIndex, end in ranges.iteritems():
+				tagIndex = tags.index(POSTags[meaningIndex])
+				tagFeatures[start : end, tagIndex] = 1.0
+				
+				start = end if end > start else start
+		
+			if purpose == constants.TRAIN:
+				self.trainExamples = numpy.hstack((self.trainExamples, tagFeatures)) if numpy.any(self.trainExamples) else tagFeatures
+				self.trainExamples = numpy.copy(tagFeatures)
+				self.trainLabels = numpy.array(allLabels[purpose])
+			else:
+				self.testExamples = numpy.hstack((self.testExamples, tagFeatures)) if numpy.any(self.testExamples) else tagFeatures
+				self.testLabels = numpy.array(allLabels[purpose])
+				self.testExamples = numpy.copy(tagFeatures)
+
+	
 	### Language Similarity ###
 	# Extracts the necessary language similarity values from the language
 	# similarity matrix, appends the new feature to the existing test set.
@@ -318,8 +346,6 @@ class Extractor:
 			letterFeatures = numpy.array(letterFeatures)
 			
 			if purpose == constants.TRAIN:
-				print self.trainExamples.shape
-				print letterFeatures.shape
 				self.trainExamples = numpy.column_stack((self.trainExamples, letterFeatures)) if numpy.any(self.trainExamples) else letterFeatures
 				self.trainLabels = numpy.array(allLabels[purpose])
 			elif purpose == constants.TEST:
@@ -367,8 +393,8 @@ class Extractor:
 					o += 1
 
 		return operations
-
-
+	
+	
 	### Feature Extraction ###
 	# Uses the list of word similarity measures to generate a single example from
 	# two wordforms.
@@ -468,7 +494,7 @@ class Extractor:
 	# Checks if the two wordforms have the same first letter.
 	def identicalFirstLetter(self, form1, form2):
 		return float(form1[0] == form2[0]) if (len(form1) * len(form2) > 0) else 0.0
-	
+
 	
 	# Computes minimum edit distance between the two wordforms. Here, all edit
 	# operations have a cost of 1.

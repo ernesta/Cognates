@@ -59,8 +59,8 @@ class Pairer:
 		self.trainLanguages = []
 		
 		self.meaningRange = {
-			constants.TRAIN: {key: 0 for key in range(constants.MEANING_COUNT + 1)},
-			constants.TEST: {key: 0 for key in range(constants.MEANING_COUNT + 1)}
+			constants.TRAIN: {key: 0 for key in range(1, constants.MEANING_COUNT + 1)},
+			constants.TEST: {key: 0 for key in range(1, constants.MEANING_COUNT + 1)}
 		}
 	
 
