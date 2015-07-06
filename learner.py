@@ -84,7 +84,7 @@ class Learner:
 	
 	### Clustering ###
 	# For each meaning, clusters all wordforms in the test dataset.
-	def cluster(self, model, threshold, wordforms, testMeanings, testLanguages, extractor):
+	def cluster(self, model, threshold, wordforms, POSTags, testMeanings, testLanguages, extractor):
 		predictedLabels = {}
 		predictedClusters = {}
 		clusterCounts = {}
@@ -92,7 +92,7 @@ class Learner:
 		
 		for meaningIndex in testMeanings:
 			meaningLanguages = self.collectMeaningLanguages(testLanguages, wordforms[meaningIndex])
-			distances = self.computeDistances(model, meaningLanguages, testLanguages, wordforms[meaningIndex], extractor)
+			distances = self.computeDistances(model, meaningLanguages, testLanguages, wordforms, meaningIndex, POSTags, extractor)
 			
 			for n in range(constants.CLUSTER_MIN, constants.CLUSTER_MAX + 1):
 				# Clusters the data into n groups.
@@ -115,7 +115,7 @@ class Learner:
 	
 	
 	# Computes the optimal cluster distance threshold for clustering.
-	def computeDistanceThreshold(self, model, wordforms, testMeanings, testLanguages, extractor, trueLabels):
+	def computeDistanceThreshold(self, model, wordforms, POSTags, testMeanings, testLanguages, extractor, trueLabels):
 		sumDistances = 0.0
 		
 		for meaningIndex in testMeanings:
@@ -123,7 +123,7 @@ class Learner:
 			minDistances = []
 			
 			meaningLanguages = self.collectMeaningLanguages(testLanguages, wordforms[meaningIndex])
-			distances = self.computeDistances(model, meaningLanguages, testLanguages, wordforms[meaningIndex], extractor)
+			distances = self.computeDistances(model, meaningLanguages, testLanguages, wordforms, meaningIndex, POSTags, extractor)
 	
 			for n in range(constants.CLUSTER_MIN, constants.CLUSTER_MAX + 1):
 				clustering = cluster.AgglomerativeClustering(n_clusters = n, affinity = "precomputed", linkage = "average")
@@ -157,30 +157,30 @@ class Learner:
 	
 	# Generates a matrix of all possible languages, with cell values set to the
 	# distance between every two word pairs for the given meaning.
-	def computeDistances(self, model, meaningLanguages, testLanguages, meaningWordforms, extractor):
+	def computeDistances(self, model, meaningLanguages, testLanguages, wordforms, meaningIndex, POSTags, extractor):
 		languageCount = len(meaningLanguages)
 		
 		distances = [[0] * languageCount for i in range(languageCount)]
 		for i in range(languageCount):
 			language1 = meaningLanguages[i]
-			form1 = meaningWordforms.get(language1, None)
+			form1 = wordforms[meaningIndex].get(language1, None)
 				
 			if not form1:
 				continue
 		
 			for j in range(languageCount):
 				language2 = meaningLanguages[j]
-				form2 = meaningWordforms.get(language2, None)
+				form2 = wordforms[meaningIndex].get(language2, None)
 					
 				if not form2:
 					continue
 				
-				example = extractor(form1, form2, testLanguages, language1, language2)
+				example = extractor(form1, form2, testLanguages, language1, language2, meaningIndex, POSTags)
 
 				if model == constants.SVM:
 					distances[i][j] = 1 - self.predictSVM(example)[0]
 				elif model == constants.LR:
-					distances[i][j] = 1 - self.predictProbLinearRegression(example)[0]
+					distances[i][j] = 1 - self.predictProbLogisticRegression(example)[0]
 	
 		return distances
 	

@@ -64,7 +64,7 @@ def groupDeduction(measure):
 
 
 ### Hauer & Kondrak Baselines ###
-def HK2011Pairwise():
+def HK2011Pairwise(twoStage = False):
 	# 1st Pass
 	# Feature extraction
 	ext = extractor.Extractor()
@@ -93,44 +93,45 @@ def HK2011Pairwise():
 	
 
 	# 2nd Pass
-	# Feature extraction
-	ext.appendLanguageFeatures(prr.examples, constants.TEST, prr.testLanguages)
+	if twoStage:
+		# Feature extraction
+		ext.appendLanguageFeatures(prr.examples, constants.TEST, prr.testLanguages)
 
-	# Learning
-	lrn = learner.Learner()
-	lrn.initSVM(0.001)
-	lrn.fitSVM(ext.testExamples, predictions1)
+		# Learning
+		lrn = learner.Learner()
+		lrn.initSVM(0.001)
+		lrn.fitSVM(ext.testExamples, predictions1)
 	
-	# Prediction
-	predictions2 = lrn.predictSVM(ext.testExamples)
+		# Prediction
+		predictions2 = lrn.predictSVM(ext.testExamples)
 	
-	# Evaluation
-	accuracy = lrn.computeAccuracy(ext.testLabels, predictions2)
-	F1 = lrn.computeF1(ext.testLabels, predictions2)
-	report = lrn.evaluatePairwise(ext.testLabels, predictions2)
+		# Evaluation
+		accuracy = lrn.computeAccuracy(ext.testLabels, predictions2)
+		F1 = lrn.computeF1(ext.testLabels, predictions2)
+		report = lrn.evaluatePairwise(ext.testLabels, predictions2)
 	
-	# Reporting
-	stage = "HK2011 2nd Pass"
-	output.reportPairwiseLearning(stage, prr, accuracy, F1, report)
-	output.savePredictions("output/" + stage + ".txt", prr.examples[constants.TEST], ext.testExamples, predictions2, ext.testLabels)
+		# Reporting
+		stage = "HK2011 2nd Pass"
+		output.reportPairwiseLearning(stage, prr, accuracy, F1, report)
+		output.savePredictions("output/" + stage + ".txt", prr.examples[constants.TEST], ext.testExamples, predictions2, ext.testLabels)
 
-
-	# Significance
-	print constants.SIGNIFICANCE.format(lrn.computeMcNemarSignificance(ext.testLabels, predictions1, predictions2))
+		# Significance
+		print constants.SIGNIFICANCE.format(lrn.computeMcNemarSignificance(ext.testLabels, predictions1, predictions2))
 
 
 	return ext, lrn
 
 
-def HK2011Clustering(ext, lrn):
+def HK2011Clustering(ext, lrn, twoStage = False):
 	# Feature extraction
 	trueLabels = ext.extractGroupLabels(rdr.cognateSets, rdr.wordforms, prr.testMeanings, prr.testLanguages)
+	extractor = ext.HK2011ExtractorFull if twoStage else ext.HK2011Extractor
 	
 	# Threshold
-	threshold = lrn.computeDistanceThreshold(constants.SVM, rdr.wordforms, prr.testMeanings, prr.testLanguages, ext.HK2011ExtractorFull, trueLabels)
+	threshold = lrn.computeDistanceThreshold(constants.SVM, rdr.wordforms, rdr.POSTags, prr.testMeanings, prr.testLanguages, extractor, trueLabels)
 
 	# Learning
-	predictedLabels, predictedSets, clusterCounts, clusterDistances = lrn.cluster(constants.SVM, constants.T1, rdr.wordforms, prr.testMeanings, prr.testLanguages, ext.HK2011ExtractorFull)
+	predictedLabels, predictedSets, clusterCounts, clusterDistances = lrn.cluster(constants.SVM, constants.T1, rdr.wordforms, rdr.POSTags, prr.testMeanings, prr.testLanguages, extractor)
 
 	# Evaluation
 	V1scores = {meaningIndex: lrn.computeV1(trueLabels[meaningIndex], predictedLabels[meaningIndex]) for meaningIndex in prr.testMeanings}
@@ -280,11 +281,6 @@ def editOperations():
 	ext = extractor.Extractor()
 	operations = ext.extractEditOps(prr.examples, prr.labels)
 
-	print operations[ord("a") - constants.FIRST][ord("e") - constants.FIRST]
-	print operations[ord("a") - constants.FIRST][ord("z") - constants.FIRST]
-	print numpy.argmax(operations[:, len(operations) - 1])
-	print numpy.max(operations[:, len(operations) - 1])
-
 
 def negativeElimination():
 	# Feature extraction
@@ -308,23 +304,16 @@ def negativeElimination():
 
 
 def pairwiseLearning():
-	# 1st pass
 	# Feature extraction
 	ext = extractor.Extractor()
 	ext.batchCompute(prr.examples, prr.labels, ext.allMeasures)
+	ext.appendPOSTags(prr.examples, prr.labels, prr.meaningRange, rdr.POSTags)
 	ext.appendLetterFeatures(prr.examples, prr.labels)
-	
-	# 0.0001: 0.7043
+
 	# Learning
-	lrn, predictions = learn(ext, 0.0001)
-	
-	# 2nd pass
-	# Feature extraction
-	ext.appendTrainSimilarities(prr.examples)
-	lrn.predictLanguageSimilarity(constants.LR, rdr.wordforms, ext.customExtractor)
-	ext.appendTestSimilarities(lrn.predictedSimilarities, prr.examples)
-	
-	# Learning
+	# 0.0001: 0.7043 (with letter features, all similarity features)
+	# 0.001:  0.7090 (with letter features, selected simialrity features)
+	# 0.0001: 0.7657 (ext.LCPRatio, ext.bigramDice, POS tags)
 	lrn, predictions = learn(ext, 0.0001)
 
 	# Reporting
@@ -334,6 +323,27 @@ def pairwiseLearning():
 	report = lrn.evaluatePairwise(ext.testLabels, predictions)
 	
 	output.reportPairwiseLearning(stage, prr, accuracy, F1, report)
+	output.savePredictions("output/" + stage + ".txt", prr.examples[constants.TEST], ext.testExamples, predictions, ext.testLabels)
+
+	return ext, lrn
+
+
+def groupLearning(ext, lrn):
+	# Feature extraction
+	trueLabels = ext.extractGroupLabels(rdr.cognateSets, rdr.wordforms, prr.testMeanings, prr.testLanguages)
+	
+	# Threshold
+	threshold = lrn.computeDistanceThreshold(constants.LR, rdr.wordforms, rdr.POSTags, prr.testMeanings, prr.testLanguages, ext.customExtractor, trueLabels)
+	
+	# Learning
+	predictedLabels, predictedSets, clusterCounts, clusterDistances = lrn.cluster(constants.LR, threshold, rdr.wordforms, rdr.POSTags, prr.testMeanings, prr.testLanguages, ext.customExtractor)
+	
+	# Evaluation
+	V1scores = {meaningIndex: lrn.computeV1(trueLabels[meaningIndex], predictedLabels[meaningIndex]) for meaningIndex in prr.testMeanings}
+	
+	# Reporting
+	output.reportCluster(V1scores, clusterCounts, clusterDistances, rdr.meanings)
+	output.saveGroup("output/Clustering.txt", predictedSets)
 
 
 def learn(ext, C):
@@ -351,7 +361,7 @@ def learn(ext, C):
 
 # FLOW
 # Reading
-rdr = reader.Reader(constants.IN)
+rdr = reader.Reader()
 rdr.read()
 
 trainMeanings = [i for i in range(1, constants.MEANING_COUNT + 1) if (i % 10 != 0 and i % 10 != 5)]

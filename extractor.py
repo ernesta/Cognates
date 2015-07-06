@@ -132,25 +132,33 @@ class Extractor:
 	### Extractors ###
 	# Extracts a set of features (all used in Hauer & Kondrak) from a pair of
 	# words.
-	def HK2011Extractor(self, form1, form2, languages = None, language1 = None, language2 = None):
+	def HK2011Extractor(self, form1, form2, languages, language1, language2, meaningIndex, POSTags):
 		return self.compute(self.HK2011Measures, form1, form2)
 	
 	
 	# Extracts a set of features (all used in Hauer & Kondrak) from a pair of
 	# words. Includes language pair features,
-	def HK2011ExtractorFull(self, form1, form2, languages, language1, language2):
+	def HK2011ExtractorFull(self, form1, form2, languages, language1, language2, meaningIndex, POSTags):
 		return self.compute(self.HK2011Measures, form1, form2, languages, language1, language2)
 	
 	
 	# Extracts all the necessary features.
-	def customExtractor(self, form1, form2):
+	def customExtractor(self, form1, form2, languages, language1, language2, meaningIndex, POSTags):
+		# Extracts orthographic similarity features.
+		example = [test(form1, form2) for test in self.allMeasures]
+		
+		# Extracts POS tag features.
+		tags = sorted(list(set(POSTags.values())))
+		tagFeatures = [0.0] * len(tags)
+		tagFeatures[tags.index(POSTags[meaningIndex])] = 1.0
+		example.extend(tagFeatures)
+		
+		# Extracts letter correspondence features.
 		operations = self.exampleLetterFeature(form1, form2)
 		indices = numpy.triu_indices_from(operations)
-		
-		example = [test(form1, form2) for test in self.allMeasures]
 		example.extend(numpy.asarray(operations[indices]))
-		
-		return example
+
+		return numpy.array(example)
 	
 	
 	### POS Tags ###
@@ -408,7 +416,7 @@ class Extractor:
 			
 			example.extend(languageFeatures)
 		
-		elif langSimilarity is not None:
+		if langSimilarity is not None:
 			example.append(langSimilarity)
 		
 		return numpy.array(example)
@@ -425,8 +433,8 @@ class Extractor:
 
 			outExamples = []
 			for i, (form1, form2, language1, language2) in enumerate(examples):
-#				form1 = "".join([char for char in form1 if char not in vowels])
-#				form2 = "".join([char for char in form2 if char not in vowels])
+#				form1 = "".join([char for char in form1 if char not in constants.VOWELS])
+#				form2 = "".join([char for char in form2 if char not in constants.VOWELS])
 
 				testValues = []
 				
