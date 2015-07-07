@@ -9,7 +9,7 @@ import constants
 # Prints to terminal key pairwise deduction results.
 def reportPairwiseDeduction(stage, prr, accuracy, F1, report):
 	print "\n", "### Pairwise Deduction (" + stage + ") ###"
-	print constants.REPORTING.format("Negative test examples:", (1 - prr.positiveCounts[constants.TEST] / prr.allCounts[constants.TEST]))
+	print constants.REPORTING.format("Negative test examples:", prr.negativeCounts[constants.TEST] / (prr.negativeCounts[constants.TEST] + prr.positiveCounts[constants.TEST]))
 	print "\n", constants.REPORTING.format("Accuracy:", accuracy)
 	print constants.REPORTING.format("F1:", F1)
 	print "\n", report
@@ -18,9 +18,9 @@ def reportPairwiseDeduction(stage, prr, accuracy, F1, report):
 # Prints to terminal key pairwise learning results.
 def reportPairwiseLearning(stage, prr, accuracy, F1, report):
 	print "\n", "### Pairwise Learning (" + stage + ") ###"
-	print constants.REPORTING.format("Negative examples:", (1 - prr.positiveCounts[constants.ALL] / prr.allCounts[constants.ALL]))
-	print constants.REPORTING.format("Negative training examples:", (1 - prr.positiveCounts[constants.TRAIN] / prr.allCounts[constants.TRAIN]))
-	print constants.REPORTING.format("Negative test examples:", (1 - prr.positiveCounts[constants.TEST] / prr.allCounts[constants.TEST]))
+	print constants.REPORTING.format("Negative examples:", (prr.negativeCounts[constants.TRAIN] + prr.negativeCounts[constants.TEST]) / (prr.negativeCounts[constants.TRAIN] + prr.negativeCounts[constants.TEST] + prr.positiveCounts[constants.TRAIN] + prr.positiveCounts[constants.TEST]))
+	print constants.REPORTING.format("Negative training examples:", prr.negativeCounts[constants.TRAIN] / (prr.negativeCounts[constants.TRAIN] + prr.positiveCounts[constants.TRAIN]))
+	print constants.REPORTING.format("Negative test examples:", prr.negativeCounts[constants.TEST] / (prr.negativeCounts[constants.TEST] + prr.positiveCounts[constants.TEST]))
 	print "\n", constants.REPORTING.format("Accuracy:", accuracy)
 	print constants.REPORTING.format("F1:", F1)
 	print "\n", report

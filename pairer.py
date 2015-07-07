@@ -48,13 +48,13 @@ class Pairer:
 		self.nExamples = {}
 		self.nLabels = {}
 		
-		# Used for later access in the main script. The three dictionary entries
-		# correspond to the training, development, and test example lists.
+		# Used for later access in the main script. The two dictionary entries
+		# correspond to the training and test datasets.
 		self.examples = {x: [] for x in range(2)}
 		self.labels = {x: [] for x in range(2)}
 		
-		self.allCounts = {x: 0 for x in range(3)}
-		self.positiveCounts = {x: 0 for x in range(3)}
+		self.positiveCounts = {x: 0 for x in range(2)}
+		self.negativeCounts = {x: 0 for x in range(2)}
 		
 		# An explicit enumeration of meanings and languages in terms of training
 		# and test data.
@@ -152,11 +152,8 @@ class Pairer:
 		self.labels[purpose].extend(self.pLabels[i])
 		self.labels[purpose].extend(self.nLabels[i])
 		
-		self.allCounts[purpose] += len(self.pExamples[i]) + len(self.nExamples[i])
 		self.positiveCounts[purpose] += len(self.pExamples[i])
-		
-		self.allCounts[constants.ALL] += len(self.pExamples[i]) + len(self.nExamples[i])
-		self.positiveCounts [constants.ALL] += len(self.pExamples[i])
+		self.negativeCounts[purpose] += len(self.nExamples[i])
 
 
 	# Pairs each wordform with a number of other wordforms to generate either a
