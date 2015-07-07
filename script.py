@@ -307,7 +307,7 @@ def pairwiseLearning():
 	# Feature extraction
 	ext = extractor.Extractor()
 	ext.batchCompute(prr.examples, prr.labels, ext.allMeasures)
-	ext.appendPOSTags(prr.examples, prr.labels, prr.meaningRange, rdr.POSTags)
+	ext.appendPOSTags(prr.examples, prr.labels, rdr.POSTags)
 	ext.appendLetterFeatures(prr.examples, prr.labels)
 
 	# Learning

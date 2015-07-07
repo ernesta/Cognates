@@ -47,7 +47,7 @@ def reportCluster(scores, counts, distances, allMeanings):
 # together with their respective features and labels (both true and predicted).
 def savePredictions(filename, examples, features, predictions, truth):
 	with open(filename, "wb") as output:
-		for i, (form1, form2, language1, language2) in enumerate(examples):
+		for i, (form1, form2, language1, language2, meaningIndex) in enumerate(examples):
 			sExample = "{0} ({1}), {2} ({3})".format(form1, language1, form2, language2)
 			sFeatures = "[" + "  ".join(["{0:4.1f}".format(feature) for feature in features[i]]) + " ]"
 			

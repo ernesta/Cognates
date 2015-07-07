@@ -142,7 +142,8 @@ class Extractor:
 		return self.compute(self.HK2011Measures, form1, form2, languages, language1, language2)
 	
 	
-	# Extracts all the necessary features.
+	# Extracts all the necessary features. Changed whenever necessary. Will
+	# probably reflect the best method by the end of the project.
 	def customExtractor(self, form1, form2, languages, language1, language2, meaningIndex, POSTags):
 		# Extracts orthographic similarity features.
 		example = [test(form1, form2) for test in self.allMeasures]
@@ -164,21 +165,19 @@ class Extractor:
 	### POS Tags ###
 	# Appends binary POS tag features to each examples. POS tags are decided
 	# based on the English meaning rather than the particular language word.
-	def appendPOSTags(self, allExamples, allLabels, meaningRange, POSTags):
-		for purpose, ranges in meaningRange.iteritems():
-			tags = sorted(list(set(POSTags.values())))
-			
-			exampleCount = len(allExamples[purpose])
-			tagCount = len(tags)
-			tagFeatures = numpy.zeros((exampleCount, tagCount))
-			
-			start = 0
-			for meaningIndex, end in ranges.iteritems():
-				tagIndex = tags.index(POSTags[meaningIndex])
-				tagFeatures[start : end, tagIndex] = 1.0
-				
-				start = end if end > start else start
+	def appendPOSTags(self, allExamples, allLabels, POSTags):
+		tags = sorted(list(set(POSTags.values())))
 		
+		for purpose, examples in allExamples.iteritems():
+			if purpose == 1:
+				continue
+			
+			tagFeatures = numpy.zeros((len(allExamples[purpose]), len(tags)))
+			
+			for i, (form1, form2, language1, language2, meaningIndex) in enumerate(examples):
+				tagIndex = tags.index(POSTags[meaningIndex])
+				tagFeatures[i, tagIndex] = 1.0
+			
 			if purpose == constants.TRAIN:
 				self.trainExamples = numpy.hstack((self.trainExamples, tagFeatures)) if numpy.any(self.trainExamples) else tagFeatures
 				self.trainLabels = numpy.array(allLabels[purpose])
@@ -193,7 +192,7 @@ class Extractor:
 	def appendTestSimilarities(self, predictedSimilarities, allExamples):
 		similarityFeature = []
 		
-		for i, (form1, form2, language1, language2) in enumerate(allExamples[constants.TEST]):
+		for i, (form1, form2, language1, language2, meaningIndex) in enumerate(allExamples[constants.TEST]):
 			similarityFeature.append(predictedSimilarities[language1][language2])
 		
 		self.testExamples = numpy.hstack((self.testExamples, numpy.array(similarityFeature)))
@@ -216,7 +215,7 @@ class Extractor:
 		featureCount = self.countLanguageFeatures(languages)
 		languageFeatures = [[0.0] * featureCount for i in range(len(allExamples[purpose]))]
 		
-		for i, (form1, form2, language1, language2) in enumerate(allExamples[purpose]):
+		for i, (form1, form2, language1, language2, meaningIndex) in enumerate(allExamples[purpose]):
 			index1, index2 = self.getLanguageIndices(languages, language1, language2)
 			languageFeatures[i][self.computeIndex(len(languages), index1, index2)] = 1.0
 		
@@ -231,7 +230,7 @@ class Extractor:
 	def countTrainDecisions(self, allExamples):
 		decisionCounts = {}
 		
-		for i, (form1, form2, language1, language2) in enumerate(allExamples[constants.TRAIN]):
+		for i, (form1, form2, language1, language2, meaningIndex) in enumerate(allExamples[constants.TRAIN]):
 			if language1 not in decisionCounts:
 				decisionCounts[language1] = {}
 			if language2 not in decisionCounts[language1]:
@@ -250,7 +249,7 @@ class Extractor:
 	def computeTrainSimilarity(self, allExamples, decisionCounts):
 		decisionSimilarities = []
 		
-		for i, (form1, form2, language1, language2) in enumerate(allExamples[constants.TRAIN]):
+		for i, (form1, form2, language1, language2, meaningIndex) in enumerate(allExamples[constants.TRAIN]):
 			decisionSimilarities.append(decisionCounts[language1][language2][1] / decisionCounts[language1][language2][0])
 
 		return decisionSimilarities
@@ -291,7 +290,7 @@ class Extractor:
 		
 		for index, label in enumerate(allLabels[constants.TRAIN]):
 			if label == 1:
-				(form1, form2, lang1, lang2) = allExamples[constants.TRAIN][index]
+				(form1, form2, language1, language2, meaningIndex) = allExamples[constants.TRAIN][index]
 				operations = numpy.add(operations, self.exampleLetterFeature(form1, form2))
 
 		return operations
@@ -302,7 +301,7 @@ class Extractor:
 		for purpose, examples in allExamples.iteritems():
 			letterFeatures = []
 				
-			for index, (form1, form2, language1, language2) in enumerate(examples):
+			for index, (form1, form2, language1, language2, meaningIndex) in enumerate(examples):
 				operations = self.exampleLetterFeature(form1, form2)
 				indices = numpy.triu_indices_from(operations)
 				letterFeatures.append(numpy.asarray(operations[indices]))
@@ -333,7 +332,7 @@ class Extractor:
 		for purpose, examples in allExamples.iteritems():
 			letterFeatures = []
 			
-			for index, (form1, form2, language1, language2) in enumerate(examples):
+			for index, (form1, form2, language1, language2, meaningIndex) in enumerate(examples):
 				operations = self.exampleLetterFeature(form1, form2)
 				indices = numpy.triu_indices_from(operations)
 				features = numpy.asarray(operations[indices])
@@ -427,14 +426,18 @@ class Extractor:
 	# separately for training and test sets unless deduction is set to True.
 	# Since deduction involves no machine learning, the entire dataset is then
 	# used as a test set.
+#	def batchCompute(self, allExamples, allLabels, tests, soundClasses):
 	def batchCompute(self, allExamples, allLabels, tests):
 		for purpose, examples in allExamples.iteritems():
 			outLabels = allLabels[purpose]
 
 			outExamples = []
-			for i, (form1, form2, language1, language2) in enumerate(examples):
+			for i, (form1, form2, language1, language2, meaningIndex) in enumerate(examples):
 #				form1 = "".join([char for char in form1 if char not in constants.VOWELS])
 #				form2 = "".join([char for char in form2 if char not in constants.VOWELS])
+
+#				form1 = "".join([soundClasses[char] if char in soundClasses else "_" for char in form1])
+#				form2 = "".join([soundClasses[char] if char in soundClasses else "_" for char in form2])
 
 				testValues = []
 				

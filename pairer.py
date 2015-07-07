@@ -173,14 +173,14 @@ class Pairer:
 			for i in range(0, len(forms)):
 				if CCN == constants.CCN1:
 					# CCN1: negative examples within single group.
-					examples, labels = self.matchWithinGroup(i, forms, 0)
+					examples, labels = self.matchWithinGroup(meaningIndex, i, forms, 0)
 					
 					self.nExamples[meaningIndex].extend(examples)
 					self.nLabels[meaningIndex].extend(labels)
 				else:
 					# CCN2: positive examples withing single group.
 					# CCN4: positive examples withing single group.
-					examples, labels = self.matchWithinGroup(i, forms, 1)
+					examples, labels = self.matchWithinGroup(meaningIndex, i, forms, 1)
 					
 					self.pExamples[meaningIndex].extend(examples)
 					self.pLabels[meaningIndex].extend(labels)
@@ -195,7 +195,7 @@ class Pairer:
 	def pairWithOtherNegatives(self, meaningIndex, i, forms, otherForms):
 		languageIndices = forms.keys()
 		currentForm = forms[languageIndices[i]]
-		examples, labels = self.matchWithOtherGroup(currentForm, languageIndices[i], otherForms, 0)
+		examples, labels = self.matchWithOtherGroup(meaningIndex, languageIndices[i], currentForm, otherForms, 0)
 		
 		self.nExamples[meaningIndex].extend(examples)
 		self.nLabels[meaningIndex].extend(labels)
@@ -203,14 +203,14 @@ class Pairer:
 
 	# Pairs the given wordform with all other wordforms that come later in the
 	# wordform dictionary.
-	def matchWithinGroup(self, i, forms, label):
+	def matchWithinGroup(self, meaningIndex, i, forms, label):
 		languageIndices = forms.keys()
 	
 		examples = []
 		labels = []
 	
 		for j in range(i + 1, len(languageIndices)):
-			example = (forms[languageIndices[i]], forms[languageIndices[j]], languageIndices[i], languageIndices[j])
+			example = (forms[languageIndices[i]], forms[languageIndices[j]], languageIndices[i], languageIndices[j], meaningIndex)
 			examples.append(example)
 			labels.append(label)
 	
@@ -219,12 +219,12 @@ class Pairer:
 
 	# Pairs the given wordform with all other wordforms in another wordform
 	# dictionary.
-	def matchWithOtherGroup(self, form, languageIndex, otherForms, label):
+	def matchWithOtherGroup(self, meaningIndex, languageIndex, form, otherForms, label):
 		examples = []
 		labels = []
 	
 		for otherLanguageIndex, otherForm in otherForms.iteritems():
-			example = (form, otherForm, languageIndex, otherLanguageIndex)
+			example = (form, otherForm, languageIndex, otherLanguageIndex, meaningIndex)
 			examples.append(example)
 			labels.append(label)
 	
