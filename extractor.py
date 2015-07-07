@@ -26,7 +26,6 @@ class Extractor:
 		
 		self.trainExamples = []
 		self.trainLabels = []
-
 		self.testExamples = []
 		self.testLabels = []
 	
@@ -97,9 +96,8 @@ class Extractor:
 		clusters = OrderedDict()
 		
 		for meaningIndex in testMeanings:
-			clusterIndices = {}
 			lastClusterIndex = -1
-
+			clusterIndices = {}
 			clusters[meaningIndex] = {}
 			
 			for languageIndex, wordform in wordforms[meaningIndex].iteritems():
@@ -121,7 +119,6 @@ class Extractor:
 					clusterIndex = clusterIndices[key]
 					if clusterIndex not in clusters[meaningIndex]:
 						clusters[meaningIndex][clusterIndex] = []
-				
 					clusters[meaningIndex][clusterIndex].append((wordform, languageIndex))
 	
 		labels = self.extractGroupLabels(clusters, wordforms, testMeanings, testLanguages)
@@ -132,14 +129,17 @@ class Extractor:
 	### Extractors ###
 	# Extracts a set of features (all used in Hauer & Kondrak) from a pair of
 	# words.
-	def HK2011Extractor(self, form1, form2, languages, language1, language2, meaningIndex, POSTags):
-		return self.compute(self.HK2011Measures, form1, form2)
+	def HK2011Extractor(self, form1, form2, languages = None, language1 = None, language2 = None, meaningIndex = None, POSTags = None):
+		example = [test(form1, form2) for test in self.HK2011Measures]
+		return numpy.array(example)
 	
 	
 	# Extracts a set of features (all used in Hauer & Kondrak) from a pair of
 	# words. Includes language pair features,
-	def HK2011ExtractorFull(self, form1, form2, languages, language1, language2, meaningIndex, POSTags):
-		return self.compute(self.HK2011Measures, form1, form2, languages, language1, language2)
+	def HK2011ExtractorFull(self, form1, form2, languages, language1, language2, meaningIndex = None, POSTags = None):
+		example = [test(form1, form2) for test in self.HK2011Measures]
+		example.extend(self.exampleBinaryLanguageFeature(languages, language1, language2))
+		return numpy.array(example)
 	
 	
 	# Extracts all the necessary features. Changed whenever necessary. Will
@@ -149,10 +149,7 @@ class Extractor:
 		example = [test(form1, form2) for test in self.allMeasures]
 		
 		# Extracts POS tag features.
-		tags = sorted(list(set(POSTags.values())))
-		tagFeatures = [0.0] * len(tags)
-		tagFeatures[tags.index(POSTags[meaningIndex])] = 1.0
-		example.extend(tagFeatures)
+		example.extend(self.examplePOSTagFeature(POSTags, meaningIndex))
 		
 		# Extracts letter correspondence features.
 		operations = self.exampleLetterFeature(form1, form2)
@@ -175,18 +172,23 @@ class Extractor:
 				tagIndex = tags.index(POSTags[meaningIndex])
 				tagFeatures[i, tagIndex] = 1.0
 			
-			if purpose == constants.TRAIN:
-				self.trainExamples = numpy.hstack((self.trainExamples, tagFeatures)) if numpy.any(self.trainExamples) else tagFeatures
-				self.trainLabels = numpy.array(allLabels[purpose])
-			else:
-				self.testExamples = numpy.hstack((self.testExamples, tagFeatures)) if numpy.any(self.testExamples) else tagFeatures
-				self.testLabels = numpy.array(allLabels[purpose])
+			self.stackExamples(purpose, tagFeatures)
+			self.setLabels(purpose, allLabels[purpose])
+
+
+	# Given a single example, generates a set of binary POS tag features.
+	def examplePOSTagFeature(self, POSTags, meaningIndex):
+		tags = sorted(list(set(POSTags.values())))
+		tagFeatures = [0.0] * len(tags)
+		tagFeatures[tags.index(POSTags[meaningIndex])] = 1.0
+	
+		return tagFeatures
 
 	
 	### Language Similarity ###
 	# Extracts the necessary language similarity values from the language
 	# similarity matrix, appends the new feature to the existing test set.
-	def appendTestSimilarities(self, predictedSimilarities, allExamples):
+	def appendTestLanguageSimilarities(self, predictedSimilarities, allExamples):
 		similarityFeature = []
 		
 		for i, (form1, form2, language1, language2, meaningIndex) in enumerate(allExamples[constants.TEST]):
@@ -197,9 +199,9 @@ class Extractor:
 	
 	# Measures language similarity as a fraction of positive examples to all
 	# examples for each language pair in the training set.
-	def appendTrainSimilarities(self, allExamples):
+	def appendTrainLanguageSimilarities(self, allExamples):
 		decisionCounts = self.countTrainDecisions(allExamples)
-		decisionSimilarities = self.computeTrainSimilarity(allExamples, decisionCounts)
+		decisionSimilarities = self.computeTrainLanguageSimilarity(allExamples, decisionCounts)
 		
 		self.trainExamples = numpy.column_stack((self.trainExamples, numpy.array(decisionSimilarities)))
 	
@@ -208,20 +210,26 @@ class Extractor:
 	# features are 0 except for a single feature that corresponds to the
 	# example's language pair. That feature is set to 1. Used in Hauer &
 	# Kondrak, 2011.
-	def appendLanguageFeatures(self, allExamples, purpose, languages):
-		featureCount = self.countLanguageFeatures(languages)
-		languageFeatures = [[0.0] * featureCount for i in range(len(allExamples[purpose]))]
+	def appendBinaryLanguageFeatures(self, allExamples, allLabels, purpose, languages):
+		languageFeatures = [[] for i in range(len(allExamples[purpose]))]
 		
 		for i, (form1, form2, language1, language2, meaningIndex) in enumerate(allExamples[purpose]):
-			index1, index2 = self.getLanguageIndices(languages, language1, language2)
-			languageFeatures[i][self.computeIndex(len(languages), index1, index2)] = 1.0
+			languageFeatures[i] = self.exampleBinaryLanguageFeature(languages, language1, language2)
 		
-		if purpose == constants.TRAIN:
-			self.trainExamples = numpy.column_stack((self.trainExamples, numpy.array(languageFeatures)))
-		else:
-			self.testExamples = numpy.column_stack((self.testExamples, numpy.array(languageFeatures)))
+		self.stackExamples(purpose, numpy.array(languageFeatures))
+		self.setLabels(purpose, allLabels[purpose])
 
-	
+
+	# Given a single example, generates a set of binary language pair features.
+	def exampleBinaryLanguageFeature(self, languages, language1, language2):
+		languageFeatures = [0.0] * self.countLanguageFeatures(languages)
+		
+		index1, index2 = self.getLanguageIndices(languages, language1, language2)
+		languageFeatures[self.computeIndex(len(languages), index1, index2)] = 1.0
+		
+		return languageFeatures
+
+
 	# Uses the training dataset to count positive and all cognateness decisions
 	# for language pairs present in the data.
 	def countTrainDecisions(self, allExamples):
@@ -243,7 +251,7 @@ class Extractor:
 
 	# Once all decisions are counted, computes decision-based language pair
 	# similarity using counts of positive and all decisions.
-	def computeTrainSimilarity(self, allExamples, decisionCounts):
+	def computeTrainLanguageSimilarity(self, allExamples, decisionCounts):
 		decisionSimilarities = []
 		
 		for i, (form1, form2, language1, language2, meaningIndex) in enumerate(allExamples[constants.TRAIN]):
@@ -304,19 +312,14 @@ class Extractor:
 				letterFeatures.append(numpy.asarray(operations[indices]))
 
 			letterFeatures = numpy.array(letterFeatures)
-				
-			if purpose == constants.TRAIN:
-				self.trainExamples = numpy.column_stack((self.trainExamples, letterFeatures)) if numpy.any(self.trainExamples) else letterFeatures
-				self.trainLabels = numpy.array(allLabels[purpose])
-			else:
-				self.testExamples = numpy.column_stack((self.testExamples, letterFeatures)) if numpy.any(self.testExamples) else letterFeatures
-				self.testLabels = numpy.array(allLabels[purpose])
+			
+			self.stackExamples(purpose, letterFeatures)
+			self.setLabels(purpose, numpy.array(allLabels[purpose]))
 
 
-	# For each example, appends a set of letter correspondence features.
+	# For each example, appends a set of letter correspondence features. Letter
+	# correspondences are not global, but rather language-group specific.
 	def appendGroupLetterFeatures(self, allExamples, allLabels):
-		# There are now 9 language groups, and thus 9 * 10 / 2 = 45 possible
-		# language pairs.
 		groupCount = len(constants.LANGUAGE_GROUPS)
 		groupPairCount = int(groupCount * (groupCount + 1) / 2)
 		
@@ -324,7 +327,7 @@ class Extractor:
 		groups = {}
 		for group in constants.LANGUAGE_GROUPS:
 			for language in group:
-				groups[language]  = group
+				groups[language] = group
 		
 		for purpose, examples in allExamples.iteritems():
 			letterFeatures = []
@@ -344,15 +347,9 @@ class Extractor:
 							letterFeature.extend([0.0] * len(features))
 		
 				letterFeatures.append(numpy.array(letterFeature))
-			
-			letterFeatures = numpy.array(letterFeatures)
-			
-			if purpose == constants.TRAIN:
-				self.trainExamples = numpy.column_stack((self.trainExamples, letterFeatures)) if numpy.any(self.trainExamples) else letterFeatures
-				self.trainLabels = numpy.array(allLabels[purpose])
-			else:
-				self.testExamples = numpy.column_stack((self.testExamples, letterFeatures)) if numpy.any(self.testExamples) else letterFeatures
-				self.testLabels = numpy.array(allLabels[purpose])
+
+			self.stackExamples(purpose, numpy.array(letterFeatures))
+			self.setLabels(purpose, numpy.array(allLabels[purpose]))
 	
 
 	# Given two words, extracts all letter correspondence features by aligning
@@ -365,17 +362,18 @@ class Extractor:
 		nothing = dimensions - 1
 		
 		operations = numpy.zeros((dimensions, dimensions))
-		
+
 		for (tag, i, j, m, n) in Levenshtein.opcodes(form1, form2):
+			# Insertion.
 			if tag == constants.INSERT:
 				for o in range(m, n):
 					letter = ord(form2[o]) - constants.FIRST if ord(form2[o]) >= constants.FIRST else space
 					operations[nothing][letter] += 1
 					operations[letter][nothing] += 1
-
+		
+			# Deletion, equality, or replacement.
 			else:
 				o = m
-				
 				for k in range(i, j):
 					if tag == constants.DELETE:
 						letter = ord(form1[k]) - constants.FIRST if ord(form1[k]) >= constants.FIRST else space
@@ -397,49 +395,29 @@ class Extractor:
 		return operations
 	
 	
+	### Word Preprocessing ###
+	def matchSoundClasses(self, form, soundClasses):
+		return "".join([soundClasses[char] if char in soundClasses else "_" for char in form])
+
+
+	def dropVowels(self, form):
+		return "".join([char for char in form if char not in constants.VOWELS])
+	
+	
 	### Feature Extraction ###
-	# Uses the list of word similarity measures to generate a single example from
-	# two wordforms.
-	def compute(self, tests, form1, form2, languages = None, language1 = None, language2 = None, langSimilarity = None):
-		example = [test(form1, form2) for test in tests]
-		
-		if languages is not None:
-			featureCount = self.countLanguageFeatures(languages)
-			languageFeatures = [0.0] * featureCount
-			
-			index1, index2 = self.getLanguageIndices(languages, language1, language2)
-			languageFeatures[self.computeIndex(len(languages), index1, index2)] = 1.0
-			
-			example.extend(languageFeatures)
-		
-		if langSimilarity is not None:
-			example.append(langSimilarity)
-		
-		return numpy.array(example)
-
-
 	# Uses the provided test function to compare wordforms in each word pair and
-	# assign a value based on the comparison. The computation is performed
-	# separately for training and test sets unless deduction is set to True.
-	# Since deduction involves no machine learning, the entire dataset is then
-	# used as a test set.
-#	def batchCompute(self, allExamples, allLabels, tests, soundClasses):
-	def batchCompute(self, allExamples, allLabels, tests):
+	# assign a value based on the comparison.
+	def batchCompute(self, allExamples, allLabels, tests, soundClasses = None):
 		for purpose, examples in allExamples.iteritems():
 			outLabels = allLabels[purpose]
-
 			outExamples = []
+			
 			for i, (form1, form2, language1, language2, meaningIndex) in enumerate(examples):
-#				form1 = "".join([char for char in form1 if char not in constants.VOWELS])
-#				form2 = "".join([char for char in form2 if char not in constants.VOWELS])
+				if soundClasses:
+					form1 = self.matchSoundClasses(form1, soundClasses)
+					form2 = self.matchSoundClasses(form2, soundClasses)
 
-#				form1 = "".join([soundClasses[char] if char in soundClasses else "_" for char in form1])
-#				form2 = "".join([soundClasses[char] if char in soundClasses else "_" for char in form2])
-
-				testValues = []
-				
-				for test in tests:
-					testValues.append(test(form1, form2))
+				testValues = [test(form1, form2) for test in tests]
 				outExamples.append(testValues)
 			
 			if purpose == constants.TRAIN:
@@ -750,7 +728,21 @@ class Extractor:
 
 
 	### Formatting ###
-	# Formats the output.
+	def stackExamples(self, purpose, extension):
+		if purpose == constants.TRAIN:
+			self.trainExamples = numpy.column_stack((self.trainExamples, extension)) if numpy.any(self.trainExamples) else extension
+		else:
+			self.testExamples = numpy.column_stack((self.testExamples, extension)) if numpy.any(self.testExamples) else extension
+
+
+	def setLabels(self, purpose, labels):
+		if purpose == constants.TRAIN:
+			self.trainLabels = labels
+		else:
+			self.testLabels = labels
+	
+
+	# Converts the data to numpy arrays.
 	def formatExamples(self):
 		self.trainExamples = numpy.array(self.trainExamples)
 		self.trainLabels = numpy.array(self.trainLabels)
