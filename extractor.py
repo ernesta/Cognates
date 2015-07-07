@@ -43,17 +43,17 @@ class Extractor:
 	### Pairwise Methods ###
 	# Identical words baseline (pairwise deduction).
 	def identicalWordsBaseline(self, allExamples, allLabels):
-		self.batchCompute(allExamples, allLabels, self.identicalWordsMeasure)
+		self.appendWordSimilarityFeatures(allExamples, allLabels, self.identicalWordsMeasure)
 	
 	
 	# Identical prefix baseline (pairwise deduction).
 	def identicalPrefixBaseline(self, allExamples, allLabels):
-		self.batchCompute(allExamples, allLabels, self.identicalPrefixMeasure)
+		self.appendWordSimilarityFeatures(allExamples, allLabels, self.identicalPrefixMeasure)
 	
 	
 	# Identical first letter baseline (pairwise deduction).
 	def identicalFirstLetterBaseline(self, allExamples, allLabels):
-		self.batchCompute(allExamples, allLabels, self.identicalFirstLetterMeasure)
+		self.appendWordSimilarityFeatures(allExamples, allLabels, self.identicalFirstLetterMeasure)
 	
 	
 	# A reproduction of Hauer & Kondrak (2011). Since data has been preprocessed
@@ -68,7 +68,7 @@ class Extractor:
 		# Length of the first word (here length of the shorter word)
 		# Length of the second word (here length of the longer word)
 		# Absolute length difference between the two words
-		self.batchCompute(allExamples, allLabels, self.HK2011Measures)
+		self.appendWordSimilarityFeatures(allExamples, allLabels, self.HK2011Measures)
 
 
 	### Group-based Methods ###
@@ -222,12 +222,12 @@ class Extractor:
 
 	# Given a single example, generates a set of binary language pair features.
 	def exampleBinaryLanguageFeature(self, languages, language1, language2):
-		languageFeatures = [0.0] * self.countLanguageFeatures(languages)
+		languageMatrix = numpy.zeros((len(languages), len(languages)))
+		languageMatrix[language1 - 1][language2 - 1] = 1.0
+		languageMatrix[language2 - 1][language1 - 1] = 1.0
 		
-		index1, index2 = self.getLanguageIndices(languages, language1, language2)
-		languageFeatures[self.computeIndex(len(languages), index1, index2)] = 1.0
-		
-		return languageFeatures
+		indices = numpy.triu_indices_from(languageMatrix, 1)
+		return numpy.asarray(languageMatrix[indices])
 
 
 	# Uses the training dataset to count positive and all cognateness decisions
@@ -271,7 +271,7 @@ class Extractor:
 	
 	# Counts possible language pairs.
 	def countLanguageFeatures(self, languages):
-		return int(len(languages) * (len(languages) - 1) / 2)
+		return int(len(languages) * (len(languages) + 1) / 2)
 	
 	
 	# Retrieves indices of the two languages, returns them sorted in an
@@ -407,10 +407,9 @@ class Extractor:
 	### Feature Extraction ###
 	# Uses the provided test function to compare wordforms in each word pair and
 	# assign a value based on the comparison.
-	def batchCompute(self, allExamples, allLabels, tests, soundClasses = None):
+	def appendWordSimilarityFeatures(self, allExamples, allLabels, tests, soundClasses = None):
 		for purpose, examples in allExamples.iteritems():
-			outLabels = allLabels[purpose]
-			outExamples = []
+			wordFeatures = []
 			
 			for i, (form1, form2, language1, language2, meaningIndex) in enumerate(examples):
 				if soundClasses:
@@ -418,16 +417,10 @@ class Extractor:
 					form2 = self.matchSoundClasses(form2, soundClasses)
 
 				testValues = [test(form1, form2) for test in tests]
-				outExamples.append(testValues)
-			
-			if purpose == constants.TRAIN:
-				self.trainExamples.extend(outExamples)
-				self.trainLabels.extend(outLabels)
-			else:
-				self.testExamples.extend(outExamples)
-				self.testLabels.extend(outLabels)
-
-		self.formatExamples()
+				wordFeatures.append(testValues)
+		
+			self.stackExamples(purpose, numpy.array(wordFeatures))
+			self.setLabels(purpose, numpy.array(allLabels[purpose]))
 	
 
 	# Returns, for each meaning, a list of language-sorted cognate group label
@@ -728,6 +721,8 @@ class Extractor:
 
 
 	### Formatting ###
+	# Appends additional features to existing examples, or sets the new features
+	# as current examples if no examples exist yet.
 	def stackExamples(self, purpose, extension):
 		if purpose == constants.TRAIN:
 			self.trainExamples = numpy.column_stack((self.trainExamples, extension)) if numpy.any(self.trainExamples) else extension
@@ -735,16 +730,9 @@ class Extractor:
 			self.testExamples = numpy.column_stack((self.testExamples, extension)) if numpy.any(self.testExamples) else extension
 
 
+	# Sets labels.
 	def setLabels(self, purpose, labels):
 		if purpose == constants.TRAIN:
 			self.trainLabels = labels
 		else:
 			self.testLabels = labels
-	
-
-	# Converts the data to numpy arrays.
-	def formatExamples(self):
-		self.trainExamples = numpy.array(self.trainExamples)
-		self.trainLabels = numpy.array(self.trainLabels)
-		self.testExamples = numpy.array(self.testExamples)
-		self.testLabels = numpy.array(self.testLabels)

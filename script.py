@@ -88,7 +88,6 @@ def HK2011Pairwise(twoStage = False):
 	output.reportPairwiseLearning(stage, prr, accuracy, F1, report)
 	output.savePredictions("output/" + stage + ".txt", prr.examples[constants.TEST], ext.testExamples, predictions1, ext.testLabels)
 	
-
 	# 2nd Pass
 	if twoStage:
 		# Feature extraction
@@ -114,8 +113,7 @@ def HK2011Pairwise(twoStage = False):
 
 		# Significance
 		print constants.SIGNIFICANCE.format(lrn.computeMcNemarSignificance(ext.testLabels, predictions1, predictions2))
-
-
+	
 	return ext, lrn
 
 
@@ -183,7 +181,7 @@ def completeFeatureSelection():
 				methods = [method for (ID, method) in subset]
 				
 				ext.cleanup()
-				ext.batchCompute(prr.examples, prr.labels, methods)
+				ext.appendWordSimilarityFeatures(prr.examples, prr.labels, methods)
 
 				lrn, predictions = learn(ext, 0.001)
 				F1 = lrn.computeF1(ext.testLabels, predictions)
@@ -246,7 +244,7 @@ def groupFeatureSelection():
 					methods = [method for (ID, method) in product]
 			
 					ext.cleanup()
-					ext.batchCompute(prr.examples, prr.labels, methods)
+					ext.appendWordSimilarityFeatures(prr.examples, prr.labels, methods)
 					
 					lrn, predictions = learn(ext, 0.001)
 					F1 = lrn.computeF1(ext.testLabels, predictions)
@@ -258,7 +256,7 @@ def groupFeatureSelection():
 def treeFeatureSelection():
 	# Feature extraction
 	ext = extractor.Extractor()
-	ext.batchCompute(prr.examples, prr.labels, ext.allMeasures)
+	ext.appendWordSimilarityFeatures(prr.examples, prr.labels, ext.allMeasures)
 	
 	# Feature selection
 	lrn = learner.Learner()
@@ -280,7 +278,7 @@ def editOperations():
 def negativeElimination():
 	# Feature extraction
 	ext = extractor.Extractor()
-	ext.batchCompute(prr.examples, prr.labels, ext.negativeMeasure)
+	ext.appendWordSimilarityFeatures(prr.examples, prr.labels, ext.negativeMeasure)
 	
 	# Learning
 	predictions = ext.testExamples.reshape((ext.testExamples.shape[0],))
@@ -302,14 +300,15 @@ def negativeElimination():
 def pairwiseLearning():
 	# Feature extraction
 	ext = extractor.Extractor()
-	ext.batchCompute(prr.examples, prr.labels, ext.allMeasures)
-#	ext.appendPOSTags(prr.examples, prr.labels, rdr.POSTags)
+	ext.appendWordSimilarityFeatures(prr.examples, prr.labels, ext.allMeasures)
+	ext.appendPOSTags(prr.examples, prr.labels, rdr.POSTags)
 	ext.appendLetterFeatures(prr.examples, prr.labels)
 
 	# Learning
 	# 0.0001: 0.7043 (with letter features, all similarity features)
 	# 0.001:  0.7090 (with letter features, selected simialrity features)
 	# 0.0001: 0.7657 (ext.LCPRatio, ext.bigramDice, POS tags)
+	# 0.0001: 0.7266 (letter, POS tag, all similarity features)
 	lrn, predictions = learn(ext, 0.0001)
 
 	# Reporting

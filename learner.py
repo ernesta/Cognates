@@ -292,13 +292,16 @@ class Learner:
 			eval2 = evals2[i]
 			if eval1 == 0 and eval2 == 1:
 				c01 += 1
+				print "c01"
 			if eval1 == 1 and eval2 == 0:
 				c10 += 1
+				print "c10"
 		
 		if c01 + c10 < 20:
 			print "Unreliable conclusion:", c01, c10
-		
-		return math.pow(abs(c01 - c10) - 1, 2) / (c01 + c10)
+			return 0.0
+		else:
+			return math.pow(abs(c01 - c10) - 1, 2) / (c01 + c10)
 	
 	
 	# Computes the probability that predictions of the two models are truly
