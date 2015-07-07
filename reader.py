@@ -8,19 +8,21 @@ import constants
 class Reader:
 	### Initialization ###
 	# Initializes the reader by setting the target filename and various data
-	# structures that will be used for reading the file.
+	# structures that will be used for reading various input files.
 	def __init__(self):
 		# Meanings and their indices (1 - 200).
 		self.meanings = OrderedDict()
 		
-		# POS tags of each of the 200 meanings.
-		self.POSTags = OrderedDict()
-		
 		# Languages and their indices (1 - 95).
 		self.languages = {}
 		
-		# For each character, a corresponding sound (letter) class (Dolgopolsky,
-		# 1986).
+		# For each meaning, the wordform for each language.
+		self.wordforms = {}
+		
+		# POS tags of each of the 200 meanings.
+		self.POSTags = OrderedDict()
+		
+		# Sound (letter) classes for each character (Dolgopolsky, 1986).
 		self.soundClasses = {}
 		
 		# For each meaning, for each CCN, all other CCNs it is doubtfully
@@ -29,18 +31,15 @@ class Reader:
 		# cognate are not used as examples of non-cognates.
 		self.dCognateCCNs = {}
 		
-		# cognateCCNs is a dictionary whose keys are meaning indices. Each meaning
-		# has an associated dictionary of cognate groups (CCNs). Each cognate
-		# dictionary contains various CCNs and associated cognate dictionaries.
-		# Each cognate dictionary is structured has language indices as keys and
-		# language word forms for each given meaning as values. Due to issues in
-		# the data, the input data is cleaned by removing entries that are
-		# ambiguous or are have CCNs that indicate inconclusive cognateness
-		# decisions.
+		# cognateCCNs is a dictionary whose keys are meaning indices. Each
+		# meaning has an associated dictionary of cognate groups (CCNs). Each
+		# cognate dictionary contains various CCNs and associated cognate
+		# dictionaries. Each cognate dictionary is structured has language
+		# indices as keys and language word forms for each given meaning as
+		# values. Due to issues in the data, the input data is cleaned by
+		# removing entries that are ambiguous or are have CCNs that indicate
+		# inconclusive cognateness decisions.
 		self.cognateCCNs = {}
-		
-		# For each meaning, the wordform for each language.
-		self.wordforms = {}
 		
 		# For each meaning, for each cognate group, all wordforms that are
 		# cognates of each other.
@@ -56,14 +55,14 @@ class Reader:
 
 
 	### Reading ###
-	# Reads the input data file and the POS tags file.
+	# Reads the various input data files.
 	def read(self):
 		self.readData()
 		self.readPOSTags()
 		self.readSoundClasses()
 	
 	
-	# Reads the input file line by line, parses each line and populates the
+	# Reads the cognate dataset line by line, parses each line and populates the
 	# associated data structures accordingly.
 	def readData(self):
 		with open(constants.IN, "rb") as data:
@@ -74,7 +73,6 @@ class Reader:
 					# processed.
 					if self.currentMeaningIndex + 1 > constants.MEANING_COUNT:
 						break
-					
 					self.processHeader(line)
 				
 				# Subheader line, indicates the beginning of a subblock.
@@ -88,7 +86,7 @@ class Reader:
 				
 				# Form line.
 				else:
-					# CCN0, CCN3 and CCN5 forms are removed.
+					# CCN0, CCN3 and CCN5 forms are ignored.
 					if self.currentCCN == constants.CCN0:
 						continue
 					elif (self.currentCCN >= constants.CCN3_START) and (self.currentCCN <= constants.CCN3_END):
@@ -197,20 +195,6 @@ class Reader:
 			
 			# Removes non-alphabetic characters (but leaves spaces).
 			form = re.sub(r"([^\s\w]|_)+", "", form).strip()
-
-			# If multiple words, splits them and chooses the longest one. First,
-			# often multiple words separated by a space indicate alternatives.
-			# Second, some are words like "to breathe", where "to" is irrelevant
-			# to - and even hurts - the algorithm. Finally, having a space -
-			# letter correspondence is not at all useful. In summary, choosing
-			# the lesser of the two evils.
-#			if " " in form:
-#				pieces = form.split()
-#				form = pieces[0]
-#				
-#				for piece in pieces:
-#					if len(piece) > len(form):
-#						form = piece
 
 			# If after all that stripping and splitting the form is still there,
 			# it is added to the final form list.
