@@ -5,18 +5,20 @@ import constants
 
 
 # There are 19,000 entries in the data. Out of those:
-# 364 do not have forms associated with meanings (CCN0),
-# 1,476 are unique (not cognate to any other forms in the data) (CCN1),
-# 9,167 are cognate with each other (within their respective groups), but not
-# with any other forms in the data (CCN2),
-# 167 are doubtfully cognate with each other (within their respective groups),
-# but not cognate with any other forms in the data (CCN3),
-# 7,751 are cognate with each other (within their respective groups) and cognate
-# or doubtfully cognate with at least one form from some other list (CCN4), and
-# 75 are doubtfully cognate with each other (within their respective groups) and
-# doubtfully cognate with at least one form from some other list (CCN5).
+	# 364 do not have forms associated with meanings (CCN0),
+	# 1,476 are unique (not cognate to any other forms in the data) (CCN1),
+	# 9,167 are cognate with each other (within their respective groups), but
+		# not with any other forms in the data (CCN2),
+	# 167 are doubtfully cognate with each other (within their respective
+		# groups), but not cognate with any other forms in the data (CCN3),
+	# 7,751 are cognate with each other (within their respective groups) and
+		# cognate or doubtfully cognate with at least one form from some other
+		# list (CCN4), and
+	# 75 are doubtfully cognate with each other (within their respective groups)
+		# and doubtfully cognate with at least one form from some other list
+		# (CCN5).
 
-# For each meaning:
+# For each meaning, pair:
 	# Positive examples:
 		# CCN2: within single group.
 		# CCN4: within single group.
@@ -47,13 +49,16 @@ class Pairer:
 		self.nLabels = {}
 		
 		# Used for later access in the main script. The three dictionary entries
-		# correspond to the training and test example lists.
+		# correspond to the training, development, and test example lists.
 		self.examples = {x: [] for x in range(3)}
 		self.labels = {x: [] for x in range(3)}
 		
 		self.allCounts = {x: 0 for x in range(4)}
 		self.positiveCounts = {x: 0 for x in range(4)}
 		
+		# An explicit enumeration of meanings and languages in terms of training
+		# and test data.
+		self.trainMeanings = []
 		self.testMeanings = []
 		self.testLanguages = []
 		self.trainLanguages = []
@@ -68,27 +73,28 @@ class Pairer:
 	# The data is divided into training and test sets by meaning as specified by
 	# the user in trainMeanings and testMeanings.
 	def pairBySpecificMeaning(self, cognates, dCognates, trainMeanings, testMeanings):
+		self.trainMeanings = trainMeanings[:]
 		self.testMeanings = testMeanings[:]
-		self.testLanguages = range(1, constants.LANGUAGE_COUNT + 1)
 		self.trainLanguages = range(1, constants.LANGUAGE_COUNT + 1)
+		self.testLanguages = range(1, constants.LANGUAGE_COUNT + 1)
 		
 		self.pair(cognates, dCognates)
-		self.combinePairs(trainMeanings)
+		self.combinePairs()
 	
 	
 	# The data is assigned to the training set only for languages specified in
 	# the trainLanguages list. The remaining data is used for testing.
 	def pairBySpecificLanguage(self, cognates, dCognates, trainLanguages, testLanguages):
+		self.trainMeanings = range(1, constants.MEANING_COUNT + 1)
 		self.testMeanings = range(1, constants.MEANING_COUNT + 1)
-		self.testLanguages = testLanguages[:]
 		self.trainLanguages = trainLanguages[:]
+		self.testLanguages = testLanguages[:]
 		
-		self.pairByLanguage(cognates, dCognates, trainLanguages, testLanguages)
-	
+		self.pairByLanguage(cognates, dCognates)
 	
 	
 	# Splits the data into training and testing sets by language.
-	def pairByLanguage(self, cognates, dCognates, trainLanguages, testLanguages):
+	def pairByLanguage(self, cognates, dCognates):
 		trainCognates = {}
 		testCognates = {}
 		
@@ -101,16 +107,16 @@ class Pairer:
 				testCognates[meaningIndex][CCN] = {}
 				
 				for languageIndex, form in forms.iteritems():
-					if languageIndex in trainLanguages:
+					if languageIndex in self.trainLanguages:
 						trainCognates[meaningIndex][CCN][languageIndex] = form
-					elif languageIndex in testLanguages:
+					elif languageIndex in self.testLanguages:
 						testCognates[meaningIndex][CCN][languageIndex] = form
 
 		self.pair(trainCognates, dCognates)
-		self.combineTrainingPairs()
+		self.combineSpecificPairs(constants.TRAIN)
 		
 		self.pair(testCognates, dCognates)
-		self.combineTestPairs()
+		self.combineSpecificPairs(constants.TEST)
 	
 	
 	# Pairs wordforms as either positive or negative examples using rules based
@@ -127,28 +133,20 @@ class Pairer:
 
 	# Combines positive and negative examples, and divides them into training
 	# and testing sets based on provided ratios.
-	def combinePairs(self, trainMeanings):
+	def combinePairs(self):
 		for i in range(1, constants.MEANING_COUNT + 1):
 			if i in self.testMeanings:
 				self.extendDataset(constants.TEST, i)
-			elif i in trainMeanings:
+			elif i in self.trainMeanings:
 				self.extendDataset(constants.TRAIN, i)
 
 
 	# Combines positive and negative examples only for the training data.
-	def combineTrainingPairs(self):
-		meaningCount = len(self.pExamples)
+	def combineSpecificPairs(self, purpose):
+		meaningCount = len(self.nExamples)
 	
 		for i in range(1, meaningCount + 1):
-			self.extendDataset(constants.TRAIN, i)
-
-
-	# Combines positive and negative examples only for the test data.
-	def combineTestPairs(self):
-		meaningCount = len(self.pExamples)
-		
-		for i in range(1, meaningCount + 1):
-			self.extendDataset(constants.TEST, i)
+			self.extendDataset(purpose, i)
 
 
 	# Extends the dataset.
@@ -188,7 +186,7 @@ class Pairer:
 					self.pLabels[meaningIndex].extend(labels)
 				
 				for otherCCN, otherForms in CCNs.iteritems():
-					if (otherCCN > CCN) and (meaningIndex not in dCognates or self.notDoubtful(CCN, otherCCN, dCognates[meaningIndex])):
+					if (otherCCN > CCN) and (meaningIndex not in dCognates or not self.doubtful(CCN, otherCCN, dCognates[meaningIndex])):
 						self.pairWithOtherNegatives(meaningIndex, i, forms, otherForms)
 	
 
@@ -212,7 +210,6 @@ class Pairer:
 		labels = []
 	
 		for j in range(i + 1, len(languageIndices)):
-			# Example is a tuple of two word forms and two language IDs.
 			example = (forms[languageIndices[i]], forms[languageIndices[j]], languageIndices[i], languageIndices[j])
 			examples.append(example)
 			labels.append(label)
@@ -235,8 +232,5 @@ class Pairer:
 
 
 	# Checks if the two CCNs are not in a doubtful cognation relationship.
-	def notDoubtful(self, CCN1, CCN2, dCognates):
-		if (CCN1 in dCognates) and (CCN2 in dCognates[CCN1]):
-			return False
-		else:
-			return True
+	def doubtful(self, CCN1, CCN2, dCognates):
+		return (CCN1 in dCognates) and (CCN2 in dCognates[CCN1])

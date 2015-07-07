@@ -73,7 +73,7 @@ LR = 1
 
 DEDUCERS = ["Identical Words", "Identical Prefixes", "Identical First Letter"]
 MEASURES = ["Minimum Edit Distance", "Hauer & Kondrak, 2011"]
-MODELS = ["SVM", "Linear Regression"]
+MODELS = ["SVM", "Logistic Regression"]
 
 
 # Edit operations
