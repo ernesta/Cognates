@@ -20,7 +20,6 @@ class Learner:
 	# Initializes the standard scaler.
 	def __init__(self):
 		self.scaler = preprocessing.StandardScaler()
-		self.predictedSimilarities = {}
 
 
 	### SVM ###

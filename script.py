@@ -70,9 +70,6 @@ def HK2011Pairwise(twoStage = False):
 	ext = extractor.Extractor()
 	ext.HK2011Baseline(prr.examples, prr.labels)
 
-#	ext.appendLanguageFeatures(prr.examples, constants.TRAIN, prr.trainLanguages)
-#	ext.appendLanguageFeatures(prr.examples, constants.TEST, prr.testLanguages)
-
 	# Learning
 	lrn = learner.Learner()
 	lrn.initSVM(0.1)
@@ -95,7 +92,7 @@ def HK2011Pairwise(twoStage = False):
 	# 2nd Pass
 	if twoStage:
 		# Feature extraction
-		ext.appendLanguageFeatures(prr.examples, constants.TEST, prr.testLanguages)
+		ext.appendBinaryLanguageFeatures(prr.examples, prr.labels, constants.TEST, prr.testLanguages)
 
 		# Learning
 		lrn = learner.Learner()
@@ -131,7 +128,8 @@ def HK2011Clustering(ext, lrn, twoStage = False):
 	threshold = lrn.computeDistanceThreshold(constants.SVM, rdr.wordforms, rdr.POSTags, prr.testMeanings, prr.testLanguages, extractor, trueLabels)
 
 	# Learning
-	predictedLabels, predictedSets, clusterCounts, clusterDistances = lrn.cluster(constants.SVM, constants.T1, rdr.wordforms, rdr.POSTags, prr.testMeanings, prr.testLanguages, extractor)
+	threshold = constants.T2 if twoStage else constants.T1
+	predictedLabels, predictedSets, clusterCounts, clusterDistances = lrn.cluster(constants.SVM, threshold, rdr.wordforms, rdr.POSTags, prr.testMeanings, prr.testLanguages, extractor)
 
 	# Evaluation
 	V1scores = {meaningIndex: lrn.computeV1(trueLabels[meaningIndex], predictedLabels[meaningIndex]) for meaningIndex in prr.testMeanings}
@@ -260,10 +258,7 @@ def groupFeatureSelection():
 def treeFeatureSelection():
 	# Feature extraction
 	ext = extractor.Extractor()
-	
-	features = [ext.identicalWords, ext.identicalPrefix, ext.identicalFirstLetter, ext.basicMED, ext.basicNED, ext.jaroDistance, ext.jaroWinklerDistance, ext.LCPLength, ext.LCPRatio, ext.LCSLength, ext.LCSR, ext.bigramDice, ext.trigramDice, ext.xBigramDice, ext.xxBigramDice, ext.commonLetterNumber, ext.commonBigramNumber, ext.commonTrigramNumber, ext.commonXBigramNumber, ext.commonBigramRatio, ext.commonLetterRatio, ext.commonTrigramRatio, ext.commonXBigramRatio, ext.longerWordLen, ext.shorterWordLen, ext.averageWordLen, ext.wordLenDifference, ext.wordLenDifferenceRatio]
-
-	ext.batchCompute(prr.examples, prr.labels, features)
+	ext.batchCompute(prr.examples, prr.labels, ext.allMeasures)
 	
 	# Feature selection
 	lrn = learner.Learner()
@@ -287,6 +282,7 @@ def negativeElimination():
 	ext = extractor.Extractor()
 	ext.batchCompute(prr.examples, prr.labels, ext.negativeMeasure)
 	
+	# Learning
 	predictions = ext.testExamples.reshape((ext.testExamples.shape[0],))
 
 	# Evaluation
@@ -307,7 +303,7 @@ def pairwiseLearning():
 	# Feature extraction
 	ext = extractor.Extractor()
 	ext.batchCompute(prr.examples, prr.labels, ext.allMeasures)
-	ext.appendPOSTags(prr.examples, prr.labels, rdr.POSTags)
+#	ext.appendPOSTags(prr.examples, prr.labels, rdr.POSTags)
 	ext.appendLetterFeatures(prr.examples, prr.labels)
 
 	# Learning
