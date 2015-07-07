@@ -50,11 +50,11 @@ class Pairer:
 		
 		# Used for later access in the main script. The three dictionary entries
 		# correspond to the training, development, and test example lists.
-		self.examples = {x: [] for x in range(3)}
-		self.labels = {x: [] for x in range(3)}
+		self.examples = {x: [] for x in range(2)}
+		self.labels = {x: [] for x in range(2)}
 		
-		self.allCounts = {x: 0 for x in range(4)}
-		self.positiveCounts = {x: 0 for x in range(4)}
+		self.allCounts = {x: 0 for x in range(3)}
+		self.positiveCounts = {x: 0 for x in range(3)}
 		
 		# An explicit enumeration of meanings and languages in terms of training
 		# and test data.
@@ -62,11 +62,6 @@ class Pairer:
 		self.testMeanings = []
 		self.testLanguages = []
 		self.trainLanguages = []
-		
-		self.meaningRange = {
-			constants.TRAIN: {key: 0 for key in range(1, constants.MEANING_COUNT + 1)},
-			constants.TEST: {key: 0 for key in range(1, constants.MEANING_COUNT + 1)}
-		}
 	
 
 	### Pairing ###
@@ -162,8 +157,6 @@ class Pairer:
 		
 		self.allCounts[constants.ALL] += len(self.pExamples[i]) + len(self.nExamples[i])
 		self.positiveCounts [constants.ALL] += len(self.pExamples[i])
-		
-		self.meaningRange[purpose][i] = len(self.labels[purpose])
 
 
 	# Pairs each wordform with a number of other wordforms to generate either a

@@ -169,9 +169,6 @@ class Extractor:
 		tags = sorted(list(set(POSTags.values())))
 		
 		for purpose, examples in allExamples.iteritems():
-			if purpose == 1:
-				continue
-			
 			tagFeatures = numpy.zeros((len(allExamples[purpose]), len(tags)))
 			
 			for i, (form1, form2, language1, language2, meaningIndex) in enumerate(examples):
@@ -311,7 +308,7 @@ class Extractor:
 			if purpose == constants.TRAIN:
 				self.trainExamples = numpy.column_stack((self.trainExamples, letterFeatures)) if numpy.any(self.trainExamples) else letterFeatures
 				self.trainLabels = numpy.array(allLabels[purpose])
-			elif purpose == constants.TEST:
+			else:
 				self.testExamples = numpy.column_stack((self.testExamples, letterFeatures)) if numpy.any(self.testExamples) else letterFeatures
 				self.testLabels = numpy.array(allLabels[purpose])
 
@@ -353,7 +350,7 @@ class Extractor:
 			if purpose == constants.TRAIN:
 				self.trainExamples = numpy.column_stack((self.trainExamples, letterFeatures)) if numpy.any(self.trainExamples) else letterFeatures
 				self.trainLabels = numpy.array(allLabels[purpose])
-			elif purpose == constants.TEST:
+			else:
 				self.testExamples = numpy.column_stack((self.testExamples, letterFeatures)) if numpy.any(self.testExamples) else letterFeatures
 				self.testLabels = numpy.array(allLabels[purpose])
 	
@@ -448,7 +445,7 @@ class Extractor:
 			if purpose == constants.TRAIN:
 				self.trainExamples.extend(outExamples)
 				self.trainLabels.extend(outLabels)
-			elif purpose == constants.TEST:
+			else:
 				self.testExamples.extend(outExamples)
 				self.testLabels.extend(outLabels)
 

@@ -56,8 +56,8 @@ DOUBTFUL_COGNATION = 3
 
 # Datasets
 TRAIN = 0
-TEST = 2
-ALL = 3
+TEST = 1
+ALL = 2
 
 
 # Methods
