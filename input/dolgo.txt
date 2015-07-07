@@ -1,0 +1,11 @@
+H: h
+J: j
+K: c, g, k, q, x
+M: m
+N: n
+P: b, f, p
+R: l, r
+S: s, z
+T: d, t
+V: a, e, i, o, u, y
+W: v, w

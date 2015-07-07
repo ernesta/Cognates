@@ -14,6 +14,7 @@ T2 = 0.3420
 # Data
 IN = "input/input.txt"
 POS = "input/POS.txt"
+DOLGO = "input/dolgo.txt"
 
 
 # Types

@@ -19,6 +19,10 @@ class Reader:
 		# Languages and their indices (1 - 95).
 		self.languages = {}
 		
+		# For each character, a corresponding sound (letter) class (Dolgopolsky,
+		# 1986).
+		self.soundClasses = {}
+		
 		# For each meaning, for each CCN, all other CCNs it is doubtfully
 		# cognate with. This is used later when pairing cognates into positive
 		# and negative examples to ensure that forms which are doubtfully
@@ -56,6 +60,7 @@ class Reader:
 	def read(self):
 		self.readData()
 		self.readPOSTags()
+		self.readSoundClasses()
 	
 	
 	# Reads the input file line by line, parses each line and populates the
@@ -102,6 +107,17 @@ class Reader:
 		with open(constants.POS, "rb") as data:
 			for i, line in enumerate(data):
 				self.POSTags[i + 1] = line.strip()
+	
+	
+	# Reads in character sound classes.
+	def readSoundClasses(self):
+		with open(constants.DOLGO, "rb") as data:
+			for line in data:
+				parts = line.split(":")
+				chars = parts[1].split(",")
+				
+				for char in chars:
+					self.soundClasses[char.strip()] = parts[0]
 
 
 	### Processing Lines ###
