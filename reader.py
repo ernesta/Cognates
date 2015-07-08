@@ -25,6 +25,9 @@ class Reader:
 		# Sound (letter) classes for each character (Dolgopolsky, 1986).
 		self.soundClasses = {}
 		
+		# A dictionary of consonants.
+		self.consonants = {}
+		
 		# For each meaning, for each CCN, all other CCNs it is doubtfully
 		# cognate with. This is used later when pairing cognates into positive
 		# and negative examples to ensure that forms which are doubtfully
@@ -60,6 +63,7 @@ class Reader:
 		self.readData()
 		self.readPOSTags()
 		self.readSoundClasses()
+		self.readConsonants()
 	
 	
 	# Reads the cognate dataset line by line, parses each line and populates the
@@ -115,7 +119,15 @@ class Reader:
 				chars = parts[1].split(",")
 				
 				for char in chars:
-					self.soundClasses[char.strip()] = parts[0]
+					self.soundClasses[char.strip("\n")] = parts[0]
+	
+	
+	# Reads in the list of consonants.
+	def readConsonants(self):
+		with open(constants.CONS, "rb") as data:
+			for line in data:
+				for char in line.split(","):
+					self.consonants[char.strip()] = char.strip()
 
 
 	### Processing Lines ###

@@ -395,26 +395,17 @@ class Extractor:
 		return operations
 	
 	
-	### Word Preprocessing ###
-	def matchSoundClasses(self, form, soundClasses):
-		return "".join([soundClasses[char] if char in soundClasses else "_" for char in form])
-
-
-	def dropVowels(self, form):
-		return "".join([char for char in form if char not in constants.VOWELS])
-	
-	
 	### Feature Extraction ###
 	# Uses the provided test function to compare wordforms in each word pair and
 	# assign a value based on the comparison.
-	def appendWordSimilarityFeatures(self, allExamples, allLabels, tests, soundClasses = None):
+	def appendWordSimilarityFeatures(self, allExamples, allLabels, tests, preprocessor = None):
 		for purpose, examples in allExamples.iteritems():
 			wordFeatures = []
 			
 			for i, (form1, form2, language1, language2, meaningIndex) in enumerate(examples):
-				if soundClasses:
-					form1 = self.matchSoundClasses(form1, soundClasses)
-					form2 = self.matchSoundClasses(form2, soundClasses)
+				if preprocessor:
+					form1 = self.preprocess(form1, preprocessor)
+					form2 = self.preprocess(form2, preprocessor)
 
 				testValues = [test(form1, form2) for test in tests]
 				wordFeatures.append(testValues)
@@ -446,6 +437,14 @@ class Extractor:
 					groupLabels[meaningIndex].append(label)
 
 		return groupLabels
+	
+	
+	### Word Preprocessing ###
+	# Preprocesses the word before features are extracte. For example, the
+	# Dolgopolsky's preprocessor converts each letter of the input into one of
+	# the 12 sound classes.
+	def preprocess(self, form, preprocessor):
+		return "".join([preprocessor[char] if char in preprocessor else "" for char in form])
 
 
 	### Word Similarity Measures ###

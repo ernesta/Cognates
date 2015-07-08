@@ -15,6 +15,7 @@ T2 = 0.3420
 IN = "input/input.txt"
 POS = "input/POS.txt"
 DOLGO = "input/dolgo.txt"
+CONS = "input/consonants.txt"
 
 
 # Types
@@ -87,7 +88,6 @@ TARGETS = ["Non-cognates", "Cognates"]
 
 
 # Letters
-VOWELS = ["a", "e", "i", "o", "u"]
 FIRST = ord("a")
 LAST = ord("z")
 
