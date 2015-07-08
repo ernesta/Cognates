@@ -42,7 +42,7 @@ class Learner:
 	### Logistic Regression ###
 	# Initializes logistic regression.
 	def initLogisticRegression(self, C):
-		self.LR = linear_model.LogisticRegression(penalty = "l2", solver = "liblinear", C = C, fit_intercept = False, verbose = True)
+		self.LR = linear_model.LogisticRegression(penalty = "l2", solver = "liblinear", C = C, fit_intercept = False, verbose = False)
 	
 	
 	# Scales the data to ~N(0, 1), stores scaling information for later

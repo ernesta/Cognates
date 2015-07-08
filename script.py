@@ -303,12 +303,14 @@ def pairwiseLearning():
 	ext.appendWordSimilarityFeatures(prr.examples, prr.labels, ext.allMeasures)
 	ext.appendPOSTags(prr.examples, prr.labels, rdr.POSTags)
 	ext.appendLetterFeatures(prr.examples, prr.labels)
+	ext.appendSameLanguageGroupFeatures(prr.examples, prr.labels)
 
 	# Learning
 	# 0.0001: 0.7043 (with letter features, all similarity features)
 	# 0.001:  0.7090 (with letter features, selected simialrity features)
 	# 0.0001: 0.7657 (ext.LCPRatio, ext.bigramDice, POS tags)
 	# 0.0001: 0.7266 (letter, POS tag, all similarity features)
+	# 0.0001: 0.7368 (letter, POS tag, all similarity features, Dolgopolsky)
 	lrn, predictions = learn(ext, 0.0001)
 
 	# Reporting

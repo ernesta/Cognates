@@ -173,7 +173,7 @@ class Extractor:
 				tagFeatures[i, tagIndex] = 1.0
 			
 			self.stackExamples(purpose, tagFeatures)
-			self.setLabels(purpose, allLabels[purpose])
+			self.setLabels(purpose, numpy.array(allLabels[purpose]))
 
 
 	# Given a single example, generates a set of binary POS tag features.
@@ -217,7 +217,26 @@ class Extractor:
 			languageFeatures[i] = self.exampleBinaryLanguageFeature(languages, language1, language2)
 		
 		self.stackExamples(purpose, numpy.array(languageFeatures))
-		self.setLabels(purpose, allLabels[purpose])
+		self.setLabels(purpose, numpy.array(allLabels[purpose]))
+	
+	
+	def appendSameLanguageGroupFeatures(self, allExamples, allLabels):
+		languageGroups = {}
+		for i, languages in enumerate(constants.LANGUAGE_GROUPS):
+			for language in languages:
+				languageGroups[language] = i
+		
+		for purpose, examples in allExamples.iteritems():
+			languageFeatures = []
+			
+			for i, (form1, form2, language1, language2, meaningIndex) in enumerate(examples):
+				if languageGroups[language1] == languageGroups[language2]:
+					languageFeatures.append([1.0])
+				else:
+					languageFeatures.append([0.0])
+			
+			self.stackExamples(purpose, numpy.array(languageFeatures))
+			self.setLabels(purpose, numpy.array(allLabels[purpose]))
 
 
 	# Given a single example, generates a set of binary language pair features.
@@ -731,7 +750,7 @@ class Extractor:
 
 	# Sets labels.
 	def setLabels(self, purpose, labels):
-		if purpose == constants.TRAIN:
+		if purpose == constants.TRAIN and not numpy.any(self.trainLabels):
 			self.trainLabels = labels
-		else:
+		elif purpose == constants.TEST and not numpy.any(self.testLabels):
 			self.testLabels = labels
