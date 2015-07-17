@@ -7,8 +7,14 @@ CLUSTER_MAX = int(LANGUAGE_COUNT * 0.5)
 
 PERMUTATIONS = 10000
 
+# HK2011 1st pass
 T1 = 0.3519
+# HK2011 2nd pass
 T2 = 0.3420
+# Minimal approach
+T3 = 0.3674
+# Combined approach
+T4 = 0.3667
 
 
 # Data
