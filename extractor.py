@@ -19,6 +19,7 @@ class Extractor:
 		self.identicalFirstLetterMeasure = [self.identicalFirstLetter]
 		self.identicalPrefixMeasure = [self.identicalPrefix]
 		self.HK2011Measures = [self.basicMED, self.LCPLength, self.commonBigramNumber, self.longerWordLen, self.shorterWordLen, self.wordLenDifference]
+		self.minimalMeasures = [self.LCPRatio, self.bigramDice]
 		
 		self.negativeMeasure = [self.sharedLetter]
 		
@@ -28,6 +29,9 @@ class Extractor:
 		self.trainLabels = []
 		self.testExamples = []
 		self.testLabels = []
+	
+		self.consonantPrep = None
+		self.soundClassPrep = None
 	
 	
 	# Resets training and test features. Allows using the same object multiple
@@ -142,20 +146,39 @@ class Extractor:
 		return numpy.array(example)
 	
 	
-	# Extracts all the necessary features. Changed whenever necessary. Will
-	# probably reflect the best method by the end of the project.
-	def customExtractor(self, form1, form2, languages, language1, language2, meaningIndex, POSTags):
+	# Extracts minimal approach features: the longest common prefix ratio,
+	# bigram Dice's coefficient, and 11 POS tags.
+	def minimalExtractor(self, form1, form2, languages, language1, language2, meaningIndex, POSTags):
 		# Extracts orthographic similarity features.
-		example = [test(form1, form2) for test in self.allMeasures]
+		example = [test(form1, form2) for test in self.minimalMeasures]
 		
 		# Extracts POS tag features.
 		example.extend(self.examplePOSTagFeature(POSTags, meaningIndex))
+
+		return numpy.array(example)
+	
+	
+	# Extracts combined approach features: a number of word similarity measures
+	# (some with additional string preprocessing), POS tags, letter
+	# correspondences, and language grouping.
+	def combinedExtractor(self, form1, form2, languages, language1, language2, meaningIndex, POSTags):
+		# Extracts orthographic similarity features.
+		example = [test(form1, form2) for test in [self.commonBigramRatio, self.commonTrigramNumber, self.bigramDice, self.jaroDistance]]
+		example.extend([test(self.preprocess(form1, self.consonantPrep), self.preprocess(form2, self.consonantPrep)) for test in [self.identicalWords]])
+		example.extend([test(self.preprocess(form1, self.soundClassPrep), self.preprocess(form2, self.soundClassPrep)) for test in [self.LCPLength, self.commonBigramNumber, self.identicalPrefix]])
 		
+		# Extracts POS tag features.
+		example.extend(self.examplePOSTagFeature(POSTags, meaningIndex))
+	
 		# Extracts letter correspondence features.
 		operations = self.exampleLetterFeature(form1, form2)
 		indices = numpy.triu_indices_from(operations)
 		example.extend(numpy.asarray(operations[indices]))
-
+	
+		# Extracts language group features.
+		languageGroups = self.getLanguageGroups()
+		example.append(self.exampleSameLanguageGroupFeature(languageGroups, language1, language2))
+	
 		return numpy.array(example)
 	
 	
@@ -220,23 +243,35 @@ class Extractor:
 		self.setLabels(purpose, numpy.array(allLabels[purpose]))
 	
 	
+	# Adds s single binary feature to each example. 1 indicates that the two
+	# words come from closely related languages.
 	def appendSameLanguageGroupFeatures(self, allExamples, allLabels):
-		languageGroups = {}
-		for i, languages in enumerate(constants.LANGUAGE_GROUPS):
-			for language in languages:
-				languageGroups[language] = i
+		languageGroups = self.getLanguageGroups()
 		
 		for purpose, examples in allExamples.iteritems():
 			languageFeatures = []
 			
 			for i, (form1, form2, language1, language2, meaningIndex) in enumerate(examples):
-				if languageGroups[language1] == languageGroups[language2]:
-					languageFeatures.append([1.0])
-				else:
-					languageFeatures.append([0.0])
+				languageFeatures.append(self.exampleSameLanguageGroupFeature(languageGroups, language1, language2))
 			
 			self.stackExamples(purpose, numpy.array(languageFeatures))
 			self.setLabels(purpose, numpy.array(allLabels[purpose]))
+	
+
+	# Given a single example, returns 1.0 if the two words in the example belong
+	# to languages of the same language group.
+	def exampleSameLanguageGroupFeature(self, languageGroups, language1, language2):
+		return 1.0 if languageGroups[language1] == languageGroups[language2] else 0.0
+	
+	
+	# Formats language group information.
+	def getLanguageGroups(self):
+		languageGroups = {}
+		for i, languages in enumerate(constants.LANGUAGE_GROUPS):
+			for language in languages:
+				languageGroups[language] = i
+
+		return languageGroups
 
 
 	# Given a single example, generates a set of binary language pair features.
@@ -321,11 +356,15 @@ class Extractor:
 	
 	
 	# For each example, appends a set of letter correspondence features.
-	def appendLetterFeatures(self, allExamples, allLabels):
+	def appendLetterFeatures(self, allExamples, allLabels, preprocessor = None):
 		for purpose, examples in allExamples.iteritems():
 			letterFeatures = []
 				
 			for index, (form1, form2, language1, language2, meaningIndex) in enumerate(examples):
+				if preprocessor:
+					form1 = self.preprocess(form1, preprocessor)
+					form2 = self.preprocess(form2, preprocessor)
+				
 				operations = self.exampleLetterFeature(form1, form2)
 				indices = numpy.triu_indices_from(operations)
 				letterFeatures.append(numpy.asarray(operations[indices]))
@@ -533,7 +572,7 @@ class Extractor:
 				if char1 == char2:
 					lengths[i + 1][j + 1] = lengths[i][j] + 1
 				else:
-					lengths[i+1][j+1] = max(lengths[i+1][j], lengths[i][j+1])
+					lengths[i + 1][j + 1] = max(lengths[i + 1][j], lengths[i][j + 1])
 	
 		return float(lengths[len(form1)][len(form2)])
 	
@@ -634,7 +673,7 @@ class Extractor:
 	
 	# Computes the ratio of shared extended bigrams of the two words.
 	def commonXBigramRatio(self, form1, form2):
-		bigramCount = (self.longerWordLen(form1, form2) - 2)
+		bigramCount = self.longerWordLen(form1, form2) - 2
 		return self.commonXBigramNumber(form1,form2) / bigramCount if bigramCount > 0 else 0.0
 	
 
