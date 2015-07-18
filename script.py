@@ -2,8 +2,6 @@ from __future__ import division
 import itertools
 import operator
 
-import numpy
-
 import constants
 import extractor
 import learner
@@ -63,7 +61,7 @@ def groupDeduction(measure):
 	output.saveGroup("output/Group " + constants.DEDUCERS[measure] + ".txt", predictedSets)
 
 
-### Hauer & Kondrak Baselines ###
+### Hauer & Kondrak, 2011 ###
 def HK2011Pairwise(twoStage = False):
 	# 1st Pass
 	# Feature extraction
@@ -121,9 +119,6 @@ def HK2011Clustering(ext, lrn, twoStage = False):
 	# Feature extraction
 	trueLabels = ext.extractGroupLabels(rdr.cognateSets, rdr.wordforms, prr.testMeanings, prr.testLanguages)
 	extractor = ext.HK2011ExtractorFull if twoStage else ext.HK2011Extractor
-	
-	# Threshold
-	threshold = lrn.computeDistanceThreshold(constants.SVM, rdr.wordforms, rdr.POSTags, prr.testMeanings, prr.testLanguages, extractor, trueLabels)
 
 	# Learning
 	threshold = constants.T2 if twoStage else constants.T1
@@ -137,122 +132,7 @@ def HK2011Clustering(ext, lrn, twoStage = False):
 	output.saveGroup("output/Clustering.txt", predictedSets)
 
 
-### My Method ###
-def completeFeatureSelection():
-	# Feature extraction
-	ext = extractor.Extractor()
-
-	features = [
-		("identicalWords", ext.identicalWords),
-		("identicalPrefix", ext.identicalPrefix),
-		("identicalFirstLetter", ext.identicalFirstLetter),
-		("basicMED", ext.basicMED),
-		("basicNED", ext.basicNED),
-		("jaroDistance", ext.jaroDistance),
-		("jaroWinklerDistance", ext.jaroWinklerDistance),
-		("LCPLength", ext.LCPLength),
-		("LCPRatio", ext.LCPRatio),
-		("LCSLength", ext.LCSLength),
-		("LCSR", ext.LCSR),
-		("bigramDice", ext.bigramDice),
-		("trigramDice", ext.trigramDice),
-		("xBigramDice", ext.xBigramDice),
-		("xxBigramDice", ext.xxBigramDice),
-		("commonLetterNumber", ext.commonLetterNumber),
-		("commonBigramNumber", ext.commonBigramNumber),
-		("commonTrigramNumber", ext.commonTrigramNumber),
-		("commonXBigramNumber", ext.commonXBigramNumber),
-		("commonBigramRatio", ext.commonBigramRatio),
-		("commonLetterRatio", ext.commonLetterRatio),
-		("commonTrigramRatio", ext.commonTrigramRatio),
-		("commonXBigramRatio", ext.commonXBigramRatio),
-		("longerWordLen", ext.longerWordLen),
-		("shorterWordLen", ext.shorterWordLen),
-		("averageWordLen", ext.averageWordLen),
-		("wordLenDifference", ext.wordLenDifference),
-		("wordLenDifferenceRatio", ext.wordLenDifferenceRatio)
-	]
-	
-	# Feature selection
-	with open("output/Measures.txt", "wb") as output:
-		for i in range(1, len(features) + 1):
-			for subset in itertools.combinations(features, i):
-				IDs = [ID for (ID, method) in subset]
-				methods = [method for (ID, method) in subset]
-				
-				ext.cleanup()
-				ext.appendWordSimilarityFeatures(prr.examples, prr.labels, methods)
-
-				lrn, predictions = learn(ext, 0.001)
-				F1 = lrn.computeF1(ext.testLabels, predictions)
-	
-				print "{0}\n{1}\n{2}".format(IDs, coef_, F1)
-				output.write("{0}\t{1}\t{2}\n".format(IDs, F1, coef_))
-
-
-def groupFeatureSelection():
-	# Feature extraction
-	ext = extractor.Extractor()
-
-	featureSets = [
-		[("identicalWords", ext.identicalWords),
-		("identicalPrefix", ext.identicalPrefix),
-		("identicalFirstLetter", ext.identicalFirstLetter)],
-
-		[("basicMED", ext.basicMED),
-		("basicNED", ext.basicNED)],
-
-		[("jaroDistance", ext.jaroDistance),
-		("jaroWinklerDistance", ext.jaroWinklerDistance)],
-
-		[("LCPLength", ext.LCPLength),
-		("LCPRatio", ext.LCPRatio)],
-
-		[("LCSLength", ext.LCSLength),
-		("LCSR", ext.LCSR)],
-
-		[("bigramDice", ext.bigramDice),
-#		("commonBigramNumber", ext.commonBigramNumber),
-		("commonBigramRatio", ext.commonBigramRatio)],
-
-#		[("trigramDice", ext.trigramDice),
-#		("commonTrigramNumber", ext.commonTrigramNumber),
-#		("commonTrigramRatio", ext.commonTrigramRatio)],
-
-#		[("xBigramDice", ext.xBigramDice),
-#		("xxBigramDice", ext.xxBigramDice),
-#		("commonXBigramNumber", ext.commonXBigramNumber),
-#		("commonXBigramRatio", ext.commonXBigramRatio)],
-
-		[("commonLetterNumber", ext.commonLetterNumber),
-		("commonLetterRatio", ext.commonLetterRatio)],
-
-#		[("longerWordLen", ext.longerWordLen),
-#		("shorterWordLen", ext.shorterWordLen),
-		[("averageWordLen", ext.averageWordLen)],
-
-		[("wordLenDifference", ext.wordLenDifference),
-		("wordLenDifferenceRatio", ext.wordLenDifferenceRatio)]
-	]
-
-	# Feature selection
-	with open("output/Measures.txt", "wb") as output:
-		for i in range(1, len(featureSets) + 2):
-			for sets in itertools.combinations(featureSets, i):
-				for product in itertools.product(*sets):
-					IDs = [ID for (ID, method) in product]
-					methods = [method for (ID, method) in product]
-			
-					ext.cleanup()
-					ext.appendWordSimilarityFeatures(prr.examples, prr.labels, methods)
-					
-					lrn, predictions = learn(ext, 0.001)
-					F1 = lrn.computeF1(ext.testLabels, predictions)
-					
-					print "{0}\n{1}\n{2}".format(IDs, lrn.coef_, F1)
-					output.write("{0}\t{1}\t{2}\n".format(IDs, F1, lrn.coef_))
-
-
+### Combined Approach ###
 def treeFeatureSelection():
 	# Feature extraction
 	ext = extractor.Extractor()
@@ -262,11 +142,11 @@ def treeFeatureSelection():
 	lrn = learner.Learner()
 	lrn.initForest(250, 0)
 	lrn.fitForest(ext.trainExamples, ext.trainLabels)
-	importances, indices = lrn.getForestImportances()
+	importances = lrn.getForestImportances()
 	
 	# Reporting
-	for i in range(len(features)):
-		print("Feature {0}: {1:.4f}".format(indices[i], importances[indices[i]]))
+	for i, feature in enumerate(ext.allMeasures):
+		print "{0}: {1:.4f}".format(feature, importances[i])
 
 
 def editOperations():
@@ -275,42 +155,24 @@ def editOperations():
 	operations = ext.extractEditOps(prr.examples, prr.labels)
 
 
-def negativeElimination():
+def pairwiseLearning(minimal = False):
 	# Feature extraction
 	ext = extractor.Extractor()
-	ext.appendWordSimilarityFeatures(prr.examples, prr.labels, ext.negativeMeasure)
+	ext.consonantPrep = rdr.consonants
+	ext.soundClassPrep = rdr.soundClasses
 	
-	# Learning
-	predictions = ext.testExamples.reshape((ext.testExamples.shape[0],))
-
-	# Evaluation
-	lrn = learner.Learner()
-	accuracy = lrn.computeAccuracy(ext.testLabels, predictions)
-	F1 = lrn.computeF1(ext.testLabels, predictions)
-	report = lrn.evaluatePairwise(ext.testLabels, predictions)
-	
-	# Reporting
-	stage = "Negative Elimination"
-	output.reportPairwiseDeduction(stage, prr, accuracy, F1, report)
-	output.savePredictions("output/" + stage + ".txt", prr.examples[constants.TEST], ext.testExamples, predictions, ext.testLabels)
-	
-	return predictions
-
-
-def pairwiseLearning():
-	# Feature extraction
-	ext = extractor.Extractor()
-	ext.appendWordSimilarityFeatures(prr.examples, prr.labels, ext.allMeasures)
-	ext.appendPOSTags(prr.examples, prr.labels, rdr.POSTags)
-	ext.appendLetterFeatures(prr.examples, prr.labels)
-	ext.appendSameLanguageGroupFeatures(prr.examples, prr.labels)
+	if minimal:
+		ext.appendWordSimilarityFeatures(prr.examples, prr.labels, ext.minimalMeasures)
+		ext.appendPOSTags(prr.examples, prr.labels, rdr.POSTags)
+	else:
+		ext.appendWordSimilarityFeatures(prr.examples, prr.labels, [ext.commonBigramRatio, ext.commonTrigramNumber, ext.bigramDice, ext.jaroDistance])
+		ext.appendWordSimilarityFeatures(prr.examples, prr.labels, [ext.identicalWords], rdr.consonants)
+		ext.appendWordSimilarityFeatures(prr.examples, prr.labels, [ext.LCPLength, ext.commonBigramNumber, ext.identicalPrefix], rdr.soundClasses)
+		ext.appendPOSTags(prr.examples, prr.labels, rdr.POSTags)
+		ext.appendLetterFeatures(prr.examples, prr.labels)
+		ext.appendSameLanguageGroupFeatures(prr.examples, prr.labels)
 
 	# Learning
-	# 0.0001: 0.7043 (with letter features, all similarity features)
-	# 0.001:  0.7090 (with letter features, selected simialrity features)
-	# 0.0001: 0.7657 (ext.LCPRatio, ext.bigramDice, POS tags)
-	# 0.0001: 0.7266 (letter, POS tag, all similarity features)
-	# 0.0001: 0.7368 (letter, POS tag, all similarity features, Dolgopolsky)
 	lrn, predictions = learn(ext, 0.0001)
 
 	# Reporting
@@ -325,15 +187,14 @@ def pairwiseLearning():
 	return ext, lrn
 
 
-def groupLearning(ext, lrn):
+def groupLearning(ext, lrn, minimal = False):
 	# Feature extraction
 	trueLabels = ext.extractGroupLabels(rdr.cognateSets, rdr.wordforms, prr.testMeanings, prr.testLanguages)
-	
-	# Threshold
-	threshold = lrn.computeDistanceThreshold(constants.LR, rdr.wordforms, rdr.POSTags, prr.testMeanings, prr.testLanguages, ext.customExtractor, trueLabels)
-	
+	extractor = ext.minimalExtractor if minimal else ext.combinedExtractor
+
 	# Learning
-	predictedLabels, predictedSets, clusterCounts, clusterDistances = lrn.cluster(constants.LR, threshold, rdr.wordforms, rdr.POSTags, prr.testMeanings, prr.testLanguages, ext.customExtractor)
+	threshold = constants.T3 if minimal else constants.T4
+	predictedLabels, predictedSets, clusterCounts, clusterDistances = lrn.cluster(constants.LR, threshold, rdr.wordforms, rdr.POSTags, prr.testMeanings, prr.testLanguages, extractor)
 	
 	# Evaluation
 	V1scores = {meaningIndex: lrn.computeV1(trueLabels[meaningIndex], predictedLabels[meaningIndex]) for meaningIndex in prr.testMeanings}
@@ -368,7 +229,7 @@ testMeanings = [i for i in range(1, constants.MEANING_COUNT + 1) if i % 10 == 0]
 
 # Pairing
 prr = pairer.Pairer()
-prr.pairBySpecificMeaning(rdr.cognateCCNs, rdr.dCognateCCNs, trainMeanings, devMeanings)
+prr.pairBySpecificMeaning(rdr.cognateCCNs, rdr.dCognateCCNs, trainMeanings, testMeanings)
 
 
 # Learning
