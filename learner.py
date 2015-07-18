@@ -41,8 +41,8 @@ class Learner:
 	
 	### Logistic Regression ###
 	# Initializes logistic regression.
-	def initLogisticRegression(self, C):
-		self.LR = linear_model.LogisticRegression(penalty = "l2", solver = "liblinear", C = C, fit_intercept = False, verbose = False)
+	def initLogisticRegression(self, C, penalty = "l2"):
+		self.LR = linear_model.LogisticRegression(penalty = penalty, solver = "liblinear", C = C, fit_intercept = False, verbose = False)
 	
 	
 	# Scales the data to ~N(0, 1), stores scaling information for later
@@ -73,12 +73,9 @@ class Learner:
 		self.forest.fit(self.scaler.fit_transform(trainExamples), trainLabels)
 	
 	
-	# Returns features sorted by importance, and their importance values.
+	# Returns feature importance values.
 	def getForestImportances(self):
-		importances = self.forest.feature_importances_
-		indices = numpy.argsort(importances)[ : : -1]
-	
-		return importances, indices
+		return self.forest.feature_importances_
 	
 	
 	### Clustering ###
@@ -101,13 +98,13 @@ class Learner:
 				# Finds the smallest distance between clusters.
 				minDistance = self.computeMinClusterDistance(n, distances, labels)
 				
+				predictedLabels[meaningIndex] = labels
+				predictedClusters[meaningIndex] = self.extractClusters(labels, meaningLanguages, wordforms[meaningIndex])
+					
+				clusterCounts[meaningIndex] = n
+				clusterDistances[meaningIndex] = minDistance
+				
 				if minDistance <= threshold:
-					predictedLabels[meaningIndex] = labels
-					predictedClusters[meaningIndex] = self.extractClusters(labels, meaningLanguages, wordforms[meaningIndex])
-					
-					clusterCounts[meaningIndex] = n
-					clusterDistances[meaningIndex] = minDistance
-					
 					break
 
 		return predictedLabels, predictedClusters, clusterCounts, clusterDistances
@@ -160,6 +157,7 @@ class Learner:
 		languageCount = len(meaningLanguages)
 		
 		distances = [[0] * languageCount for i in range(languageCount)]
+		
 		for i in range(languageCount):
 			language1 = meaningLanguages[i]
 			form1 = wordforms[meaningIndex].get(language1, None)
@@ -180,7 +178,7 @@ class Learner:
 					distances[i][j] = 1 - self.predictSVM(example)[0]
 				elif model == constants.LR:
 					distances[i][j] = 1 - self.predictProbLogisticRegression(example)[0]
-	
+
 		return distances
 	
 	
@@ -292,10 +290,8 @@ class Learner:
 			eval2 = evals2[i]
 			if eval1 == 0 and eval2 == 1:
 				c01 += 1
-				print "c01"
 			if eval1 == 1 and eval2 == 0:
 				c10 += 1
-				print "c10"
 		
 		if c01 + c10 < 20:
 			print "Unreliable conclusion:", c01, c10
