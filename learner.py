@@ -90,8 +90,8 @@ class Learner:
 			meaningLanguages = self.collectMeaningLanguages(testLanguages, wordforms[meaningIndex])
 			distances = self.computeDistances(model, meaningLanguages, testLanguages, wordforms, meaningIndex, POSTags, extractor)
 			
-			for n in range(constants.CLUSTER_MIN, constants.CLUSTER_MAX + 1):
-				# Clusters the data into n groups.
+			
+			for n in range(1, len(meaningLanguages) + 1):
 				clustering = cluster.AgglomerativeClustering(n_clusters = n, affinity = "precomputed", linkage = "average")
 				labels = clustering.fit_predict(numpy.array(distances))
 			
@@ -121,7 +121,7 @@ class Learner:
 			meaningLanguages = self.collectMeaningLanguages(testLanguages, wordforms[meaningIndex])
 			distances = self.computeDistances(model, meaningLanguages, testLanguages, wordforms, meaningIndex, POSTags, extractor)
 	
-			for n in range(constants.CLUSTER_MIN, constants.CLUSTER_MAX + 1):
+			for n in range(1, len(meaningLanguages) + 1):
 				clustering = cluster.AgglomerativeClustering(n_clusters = n, affinity = "precomputed", linkage = "average")
 				labels = clustering.fit_predict(numpy.array(distances))
 				
