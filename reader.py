@@ -195,6 +195,10 @@ class Reader:
 		# While most multiple forms are provided using a comma-delimited list,
 		# some are also delimited with a /.
 		for form in re.split("/|,", line[25 :]):
+			# Changes all kinds of weird spaces into a normal space.
+			form = " ".join(form.split())
+			
+			# Lowercases the form.
 			form = form.strip().lower()
 			
 			# Drops words that beging with - (these are not words but rather
