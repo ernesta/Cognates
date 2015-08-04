@@ -104,7 +104,7 @@ class Pairer:
 				for languageIndex, form in forms.iteritems():
 					if languageIndex in self.trainLanguages:
 						trainCognates[meaningIndex][CCN][languageIndex] = form
-					elif languageIndex in self.testLanguages:
+					if languageIndex in self.testLanguages:
 						testCognates[meaningIndex][CCN][languageIndex] = form
 
 		self.pair(trainCognates, dCognates)
@@ -132,7 +132,7 @@ class Pairer:
 		for i in range(1, constants.MEANING_COUNT + 1):
 			if i in self.testMeanings:
 				self.extendDataset(constants.TEST, i)
-			elif i in self.trainMeanings:
+			if i in self.trainMeanings:
 				self.extendDataset(constants.TRAIN, i)
 
 
