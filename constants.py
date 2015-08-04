@@ -2,15 +2,12 @@
 LANGUAGE_COUNT = 95
 MEANING_COUNT = 200
 
-CLUSTER_MIN = 1
-CLUSTER_MAX = int(LANGUAGE_COUNT * 0.5)
-
 PERMUTATIONS = 10000
 
 # HK2011 1st pass
-T1 = 0.3519
+T1 = 0.3594
 # HK2011 2nd pass
-T2 = 0.3420
+T2 = 0.3308
 # Minimal approach
 T3 = 0.3674
 # Combined approach
@@ -100,23 +97,23 @@ LAST = ord("z")
 
 # Languages
 LANGUAGE_GROUPS = [
-	# Celtic subfamily
+	# Celtic subfamily (7)
 	range(1, 8),
-	# Romance subfamily
+	# Romance subfamily (16)
 	range(8, 24),
-	# Germanic subfamily
+	# Germanic subfamily (15)
 	range(24, 39),
-	# Baltoslavic subfamily
+	# Baltoslavic subfamily (26)
 	range(39, 55) + range(85, 95),
-	# Indoaryan cluster
+	# Indoaryan cluster (11)
 	range(55, 66),
-	# Greek subfamily
+	# Greek subfamily (5)
 	range(66, 71),
-	# Armenian subfamily
+	# Armenian subfamily (2)
 	range(71, 73),
-	# Iranian cluster
+	# Iranian cluster (7)
 	range(73, 80),
-	# Albanian subfamily
+	# Albanian subfamily (6)
 	range(80, 85) + [95]
 ]
 
