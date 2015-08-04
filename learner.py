@@ -25,7 +25,7 @@ class Learner:
 	### SVM ###
 	# Initializes SVM with a custom C value.
 	def initSVM(self, C):
-		self.SVM = svm.LinearSVC(C = C, fit_intercept = False, verbose = True)
+		self.SVM = svm.LinearSVC(C = C, fit_intercept = False, max_iter = 10000, verbose = True)
 	
 	
 	# Scales the data to ~N(0, 1), stores scaling information for later
@@ -89,7 +89,6 @@ class Learner:
 		for meaningIndex in testMeanings:
 			meaningLanguages = self.collectMeaningLanguages(testLanguages, wordforms[meaningIndex])
 			distances = self.computeDistances(model, meaningLanguages, testLanguages, wordforms, meaningIndex, POSTags, extractor)
-			
 			
 			for n in range(1, len(meaningLanguages) + 1):
 				clustering = cluster.AgglomerativeClustering(n_clusters = n, affinity = "precomputed", linkage = "average")
