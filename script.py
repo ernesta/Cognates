@@ -93,7 +93,7 @@ def HK2011Pairwise(twoStage = False):
 
 		# Learning
 		lrn = learner.Learner()
-		lrn.initSVM(0.001)
+		lrn.initSVM(0.0001)
 		lrn.fitSVM(ext.testExamples, predictions1)
 	
 		# Prediction
@@ -172,6 +172,7 @@ def pairwiseLearning(minimal = False):
 		ext.appendLetterFeatures(prr.examples, prr.labels)
 		ext.appendSameLanguageGroupFeatures(prr.examples, prr.labels)
 
+
 	# Learning
 	lrn, predictions = learn(ext, 0.0001)
 
@@ -222,14 +223,22 @@ def learn(ext, C):
 rdr = reader.Reader()
 rdr.read()
 
+
+# Data division
 trainMeanings = [i for i in range(1, constants.MEANING_COUNT + 1) if (i % 10 != 0 and i % 10 != 5)]
 devMeanings = [i for i in range(1, constants.MEANING_COUNT + 1) if i % 10 == 5]
 testMeanings = [i for i in range(1, constants.MEANING_COUNT + 1) if i % 10 == 0]
 
+trainLanguages = constants.LANGUAGE_GROUPS[1] + constants.LANGUAGE_GROUPS[2] + constants.LANGUAGE_GROUPS[3]
+testLanguages = constants.LANGUAGE_GROUPS[0] + constants.LANGUAGE_GROUPS[4] + constants.LANGUAGE_GROUPS[5] + constants.LANGUAGE_GROUPS[6] + constants.LANGUAGE_GROUPS[8] + constants.LANGUAGE_GROUPS[7]
+
 
 # Pairing
 prr = pairer.Pairer()
-prr.pairBySpecificMeaning(rdr.cognateCCNs, rdr.dCognateCCNs, trainMeanings, testMeanings)
+#prr.pairBySpecificMeaning(rdr.cognateCCNs, rdr.dCognateCCNs, trainMeanings, devMeanings)
+prr.pairBySpecificLanguage(rdr.cognateCCNs, rdr.dCognateCCNs, trainLanguages, testLanguages)
 
 
 # Learning
+ext, lrn = pairwiseLearning()
+groupLearning(ext, lrn)
