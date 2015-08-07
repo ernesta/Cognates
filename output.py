@@ -1,4 +1,5 @@
 from __future__ import division
+import os
 import pickle
 
 import constants
@@ -46,6 +47,8 @@ def reportCluster(scores, counts, distances, allMeanings):
 # Saves each example (a pair of wordforms with their languages) to a file
 # together with their respective features and labels (both true and predicted).
 def savePredictions(filename, examples, features, predictions, truth):
+	checkDirectory(filename)
+	
 	with open(filename, "wb") as output:
 		for i, (form1, form2, language1, language2, meaningIndex) in enumerate(examples):
 			sExample = "{0} ({1}), {2} ({3})".format(form1, language1, form2, language2)
@@ -56,6 +59,8 @@ def savePredictions(filename, examples, features, predictions, truth):
 
 # Saves a readable version of clustering of grouping to a file.
 def saveGroup(filename, predictedSets):
+	checkDirectory(filename)
+	
 	with open(filename, "wb") as output:
 		for meaningIndex, groups in predictedSets.iteritems():
 			output.write("Meaning: {0}\n".format(meaningIndex))
@@ -73,9 +78,11 @@ def pickleLearning(stage, ext, lrn):
 	extData = [ext.trainExamples, ext.trainLabels, ext.testExamples, ext.testLabels]
 	lrnData = [lrn.scaler, lrn.machine, lrn.predictedSimilarities]
 	
+	checkDirectory(constants.PICKLE_EXT.format(stage))
 	with open(constants.PICKLE_EXT.format(stage), "wb") as output:
 		pickle.dump(extData, output)
-
+	
+	checkDirectory(constants.PICKLE_LRN.format(stage))
 	with open(constants.PICKLE_LRN.format(stage), "wb") as output:
 		pickle.dump(lrnData, output)
 
@@ -98,3 +105,9 @@ def unpickleLearning(stage, ext, lrn):
 	lrn.predictedSimilarities = lrnData[2]
 
 	return ext, lrn
+
+
+# Checks if a directory for the given filename exists. If not, creates one.
+def checkDirectory(filename):
+	if not os.path.exists(os.path.dirname(filename)):
+		os.makedirs(os.path.dirname(filename))
