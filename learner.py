@@ -261,6 +261,44 @@ class Learner:
 		return metrics.v_measure_score(truth, predictions)
 	
 	
+	# Computes the B-cubed F-1 score (Amigo, Gonzalo, Artiles, & Verdejo, 2009).
+	def computeB3(self, truth, predictions):
+		# Creates clusters from the two arrays of cluster indices.
+		trueClusters = {}
+		predictedClusters = {}
+		
+		for i in range(len(truth)):
+			trueID = truth[i]
+			predictedID = predictions[i]
+	
+			if trueID not in trueClusters:
+				trueClusters[trueID] = set()
+			if predictedID not in predictedClusters:
+				predictedClusters[predictedID] = set()
+
+			trueClusters[trueID].add(i)
+			predictedClusters[predictedID].add(i)
+		
+		# Computes recall and precision as an average of recall and precision
+		# values of each example.
+		P = 0.0
+		R = 0.0
+		
+		for i in range(len(truth)):
+			trueCluster = trueClusters[truth[i]]
+			predictedCluster = predictedClusters[predictions[i]]
+			intersection = trueCluster & predictedCluster
+			
+			P += len(intersection) / len(predictedCluster)
+			R += len(intersection) / len(trueCluster)
+		
+		P = P / len(truth)
+		R = R / len(truth)
+
+		return 0.0 if P + R <= 0.0 else 2 * P * R / (P + R)
+		
+		
+	
 	# Generates an evaluation report, where precision, recall and F-1 scores are
 	# reported for each class separately, and for the entire dataset.
 	def evaluatePairwise(self, truth, predictions):
